@@ -1,8 +1,10 @@
 import pathlib
 import sys
 
-# 保证从 backend/ 目录运行 pytest 时可导入 app 包
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+# backend/（导入 app）与 program/（导入 scripts）
+_ROOT = pathlib.Path(__file__).resolve()
+sys.path.insert(0, str(_ROOT.parents[1]))
+sys.path.insert(0, str(_ROOT.parents[2]))
 
 from types import SimpleNamespace
 
@@ -41,7 +43,9 @@ def env(tmp_path):
     config = ConfigService(engine, vs)
     room = RoomService(engine, config)
     memory = MemoryService(engine, 6000, 8000)
-    speech = SpeechService(engine, config, memory, RetrievalService(vs, EmbeddingAdapter()), lambda a: DemoProvider())
+    speech = SpeechService(
+        engine, config, memory, RetrievalService(vs, EmbeddingAdapter()), lambda a: DemoProvider()
+    )
     conclusion = ConclusionService(engine, config, memory, str(tmp_path))
     queue = RaiseHandQueue()
 
@@ -51,7 +55,17 @@ def env(tmp_path):
     app.dependency_overrides[get_speech_service] = lambda: speech
     app.dependency_overrides[get_conclusion_service] = lambda: conclusion
     app.dependency_overrides[get_raise_hand_queue] = lambda: queue
-    yield SimpleNamespace(engine=engine, vs=vs, config=config, room=room, memory=memory)
+    yield SimpleNamespace(
+        engine=engine,
+        vs=vs,
+        config=config,
+        room=room,
+        memory=memory,
+        speech=speech,
+        conclusion=conclusion,
+        queue=queue,
+        data_dir=str(tmp_path),
+    )
     app.dependency_overrides.clear()
 
 
@@ -69,7 +83,7 @@ def seeded(client):
             "provider_type": "OpenAI 兼容",
             "base_url": "http://x",
             "api_key": "sk-xxxxxxxxxxxx3f9a",
-            "available_models": ["qwen-max", "qwen-plus"],
+            "available_models": ["qwen-max", "qwen-plus", "qwen-turbo"],
         },
     ).json()
     kb = client.post(

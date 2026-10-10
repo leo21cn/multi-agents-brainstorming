@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>火花会 Sparkwave · 演示台</title>
+<style>
+  :root{--line:#e8eaed;--text:#1f2329;--dim:#646a73;--accent:#2b7fff;--soft:#eef4ff;--panel:#f7f8fa;--ok:#12a594}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--text);font:14px/1.6 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:900px;margin:0 auto;padding:32px 24px 64px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 20px;font-size:13px}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  button{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--dim);cursor:pointer;font:inherit}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);border-color:transparent;color:#fff}
+  input,select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;min-width:180px}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font:12px/1.5 Consolas,monospace;max-height:360px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>火花会 Sparkwave · 演示台</h1>
+  <p class="sub">单机演示的控制台：配置初始化 → 建房 → 讨论（点名/举手）→ 结论文档 → 导出。需先运行 <code>make seed</code> 完成入库与配置。</p>
+
+  <div class="card">
+    <div class="row"><strong>初始化状态</strong><span id="init" class="pill">未检查</span><button onclick="checkInit()">检查</button></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><strong>建房</strong>
+      <input id="prop" value="某功能预计延期两周，应砍范围、加人还是推迟发布？">
+      <input id="host" value="陈默" style="min-width:90px">
+      <button class="primary" onclick="createRoom()">创建房间</button>
+      <span id="room" class="pill">房间：无</span>
+    </div>
+    <div class="row"><strong>点名发言</strong>
+      <select id="agents"></select>
+      <button onclick="speak()">点名</button>
+      <input id="human" placeholder="人类发言，如：补充一个合规约束">
+      <button onclick="humanMsg()">发送</button>
+    </div>
+    <div class="row"><strong>插嘴</strong>
+      <button onclick="raiseHand()">举手</button>
+      <button onclick="releaseHand()">放行</button>
+      <button onclick="dismissHand()">驳回</button>
+    </div>
+    <div class="row"><strong>产出</strong>
+      <button onclick="conclusion()">生成结论</button>
+      <button onclick="exportTranscript()">导出记录</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row"><strong>消息 / 结果</strong><button onclick="loadMessages()">刷新消息</button></div>
+    <pre id="out">（点击上方按钮查看结果）</pre>
+  </div>
+</div>
+
+<script>
+const API = "";
+let roomId = null, lastRaise = null;
+function show(x){ document.getElementById('out').textContent = JSON.stringify(x, null, 2); }
+async function j(url, opt){ const r = await fetch(API+url, opt); const t = await r.text(); try { return {status:r.status, body:JSON.parse(t)}; } catch { return {status:r.status, body:t}; } }
+function opts(body){ return {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}; }
+
+async function checkInit(){ const r = await j('/system/init-status'); document.getElementById('init').textContent = r.body.ready ? '已达标' : '未达标'; show(r); if(r.body.ready) loadAgents(); }
+async function loadAgents(){ const r = await j('/agents'); const sel = document.getElementById('agents'); sel.innerHTML=''; (r.body||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a.agent_id; o.textContent=a.name+' · '+a.model_name; sel.appendChild(o); }); }
+async function createRoom(){
+  const agentId = document.getElementById('agents').value;
+  const r = await j('/rooms', opts({proposition:document.getElementById('prop').value, orchestration_mode:'人类主持控制', agent_ids: agentId?[agentId]:[], host_name:document.getElementById('host').value}));
+  if(r.status===201){ roomId = r.body.room_id; document.getElementById('room').textContent='房间：'+roomId.slice(-6); }
+  show(r);
+}
+async function speak(){ if(!roomId) return show({error:'先建房'}); const r = await j(`/rooms/${roomId}/speak`, opts({agent_id:document.getElementById('agents').value, intent:document.getElementById('prop').value})); show(r); }
+async function humanMsg(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/messages`, opts({content:document.getElementById('human').value})); show(r); }
+async function raiseHand(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/raise-hand`, opts({agent_id:document.getElementById('agents').value, intent:'补充观点'})); lastRaise = r.body.raise_id; show(r); }
+async function releaseHand(){ if(!roomId||!lastRaise) return; const r = await j(`/rooms/${roomId}/raise-hand/${lastRaise}/release`, {method:'POST'}); show(r); }
+async function dismissHand(){ if(!roomId||!lastRaise) return; const r = await j(`/rooms/${roomId}/raise-hand/${lastRaise}/dismiss`, {method:'POST'}); show(r); }
+async function conclusion(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/conclusion`, {method:'POST'}); show(r); }
+async function exportTranscript(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/export`, {method:'POST'}); show(r); }
+async function loadMessages(){ if(!roomId) return; show(await j(`/rooms/${roomId}/messages`)); }
+</script>
+</body>
+</html>

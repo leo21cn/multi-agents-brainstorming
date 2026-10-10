@@ -71,6 +71,11 @@ class ConfigService:
             s.refresh(kb)
         return kb
 
+    def get_or_create_knowledge_base(self, name: str, dimension) -> KnowledgeBase:
+        with Session(self.engine) as s:
+            row = s.exec(select(KnowledgeBase).where(KnowledgeBase.name == name)).first()
+        return row if row else self.create_knowledge_base(name, dimension)
+
     def list_knowledge_bases(self) -> list[KnowledgeBase]:
         with Session(self.engine) as s:
             return list(s.exec(select(KnowledgeBase)).all())
