@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 
 from app.api.config_routes import router as config_router
+from app.api.room_routes import router as room_router
 
 app = FastAPI(title="Sparkwave")
 app.include_router(config_router)
+app.include_router(room_router)
 
 
 @app.get("/healthz")

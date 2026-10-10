@@ -14,3 +14,10 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     if _provider is None:
         raise RuntimeError("embedding provider not configured")
     return _provider.embed(texts)
+
+
+class EmbeddingAdapter:
+    """供检索服务使用的嵌入适配器（转发到 embed_texts）。"""
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return embed_texts(texts)
