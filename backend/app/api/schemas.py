@@ -59,3 +59,17 @@ class RoomCreate(BaseModel):
 
 class MemberCreate(BaseModel):
     display_name: str
+
+
+class HumanMessageIn(BaseModel):
+    content: str
+
+
+class SpeakRequest(BaseModel):
+    agent_id: str
+    intent: Optional[str] = None
+
+
+class RaiseHandRequest(BaseModel):
+    agent_id: str
+    intent: Optional[str] = None

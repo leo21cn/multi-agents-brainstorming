@@ -1,11 +1,14 @@
 from functools import lru_cache
 
 from app.memory.service import MemoryService
+from app.orchestration.queue import RaiseHandQueue
 from app.persistence.db import get_engine, init_db
 from app.rag.retrieval import RetrievalService
 from app.rag.vectorstore import default_vector_store
+from app.services.conclusion_service import ConclusionService
 from app.services.config_service import ConfigService
 from app.services.room_service import RoomService
+from app.services.speech_service import SpeechService
 from app.settings import Settings, load_settings
 
 
@@ -52,3 +55,39 @@ def get_retrieval_service() -> RetrievalService:
     from app.rag.embeddings import EmbeddingAdapter
 
     return RetrievalService(get_vector_store_singleton(), EmbeddingAdapter())
+
+
+@lru_cache
+def get_raise_hand_queue() -> RaiseHandQueue:
+    return RaiseHandQueue()
+
+
+def _provider_factory(agent, config):
+    conn = config.get_connection(agent.model_connection_id)
+    if conn and conn.api_key:
+        from app.models.openai_compat import OpenAICompatProvider
+
+        return OpenAICompatProvider(conn.base_url, conn.api_key)
+    from app.models.demo_provider import DemoProvider
+
+    return DemoProvider()
+
+
+def get_speech_service() -> SpeechService:
+    config = get_config_service()
+    return SpeechService(
+        get_engine_singleton(),
+        config,
+        get_memory_service(),
+        get_retrieval_service(),
+        lambda agent: _provider_factory(agent, config),
+    )
+
+
+def get_conclusion_service() -> ConclusionService:
+    return ConclusionService(
+        get_engine_singleton(),
+        get_config_service(),
+        get_memory_service(),
+        get_settings().data_dir,
+    )

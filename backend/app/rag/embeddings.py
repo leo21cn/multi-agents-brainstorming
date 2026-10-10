@@ -1,8 +1,11 @@
-"""嵌入调用。默认提供方由运行期注入（种子脚本/服务），测试中可 monkeypatch。"""
+"""嵌入调用。优先使用注入的提供方；未配置时回退到确定性哈希嵌入，保证离线可跑通。"""
+
+import hashlib
 
 from app.models.provider import ModelProvider
 
 _provider: ModelProvider | None = None
+_DIM = 64
 
 
 def configure(provider: ModelProvider) -> None:
@@ -10,10 +13,17 @@ def configure(provider: ModelProvider) -> None:
     _provider = provider
 
 
+def hash_embedding(text: str) -> list[float]:
+    vec = [0.0] * _DIM
+    for ch in text:
+        vec[int(hashlib.md5(ch.encode("utf-8")).hexdigest(), 16) % _DIM] += 1.0
+    return vec
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    if _provider is None:
-        raise RuntimeError("embedding provider not configured")
-    return _provider.embed(texts)
+    if _provider is not None:
+        return _provider.embed(texts)
+    return [hash_embedding(t) for t in texts]
 
 
 class EmbeddingAdapter:
