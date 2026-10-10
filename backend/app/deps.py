@@ -57,6 +57,22 @@ def get_retrieval_service() -> RetrievalService:
     return RetrievalService(get_vector_store_singleton(), EmbeddingAdapter())
 
 
+def configure_embeddings() -> str:
+    """按首个模型连接配置嵌入提供方；无连接或空密钥时回退到离线演示提供方。"""
+    from app.rag import embeddings
+
+    conns = get_config_service().list_connections()
+    if conns and conns[0].api_key:
+        from app.models.openai_compat import OpenAICompatProvider
+
+        embeddings.configure(OpenAICompatProvider(conns[0].base_url, conns[0].api_key))
+        return "connection"
+    from app.models.demo_provider import DemoProvider
+
+    embeddings.configure(DemoProvider())
+    return "demo"
+
+
 @lru_cache
 def get_raise_hand_queue() -> RaiseHandQueue:
     return RaiseHandQueue()

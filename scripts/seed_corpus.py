@@ -6,7 +6,7 @@ from pathlib import Path
 from app.domain.enums import KnowledgeDimension
 from app.persistence.db import get_engine, init_db
 from app.rag.splitter import split_text
-from app.rag.vectorstore import InMemoryVectorStore
+from app.rag.vectorstore import default_vector_store
 from app.services.config_service import ConfigService
 from app.settings import Settings
 
@@ -30,8 +30,9 @@ def find_testdata() -> Path:
 def ingest(testdata_dir: Path, db_path, data_dir) -> dict:
     engine = get_engine(Settings("", str(db_path), str(data_dir), 6000, 8000))
     init_db(engine)
-    vs = InMemoryVectorStore(str(Path(data_dir) / "vectors.json"))
+    vs = default_vector_store(str(data_dir))
     svc = ConfigService(engine, vs)
+    _configure_embeddings(svc)
     counts: dict[str, int] = {}
     for sub, dimension in DIR_TO_DIMENSION.items():
         kb = svc.get_or_create_knowledge_base(dimension.value, dimension)
@@ -42,6 +43,17 @@ def ingest(testdata_dir: Path, db_path, data_dir) -> dict:
             svc.ingest_document(kb.kb_id, f.name, "md", text)
         counts[dimension.value] = chunks_total
     return counts
+
+
+def _configure_embeddings(svc: ConfigService) -> None:
+    """按已配置的模型连接使用真实嵌入；无连接或空密钥时回退到离线哈希嵌入。"""
+    from app.rag import embeddings
+
+    conns = svc.list_connections()
+    if conns and conns[0].api_key:
+        from app.models.openai_compat import OpenAICompatProvider
+
+        embeddings.configure(OpenAICompatProvider(conns[0].base_url, conns[0].api_key))
 
 
 def main() -> None:

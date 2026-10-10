@@ -32,8 +32,8 @@ def _run(args, cwd=None) -> int:
 
 def seed() -> int:
     code = "import sys; sys.path[:0]=['.','backend']; from scripts.%s import main as m; m()"
-    _run([PY, "-c", code % "seed_corpus"])
-    return _run([PY, "-c", code % "seed_config"])
+    rc = _run([PY, "-c", code % "seed_config"])
+    return rc or _run([PY, "-c", code % "seed_corpus"])
 
 
 def up() -> int:

@@ -1,6 +1,5 @@
 import json
 import math
-import os
 from pathlib import Path
 from typing import Protocol
 
@@ -20,7 +19,7 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 
 class InMemoryVectorStore:
-    """纯 Python 向量库，可持久化为 JSON。默认实现，避免依赖外部服务。"""
+    """纯 Python 向量库，可持久化为 JSON；作为 Chroma 不可用时的回退。"""
 
     def __init__(self, path: str | None = None):
         self._path = path
@@ -53,10 +52,10 @@ class InMemoryVectorStore:
 
 
 class ChromaVectorStore:
-    """Chroma 后端；当 chromadb 可用时启用。"""
+    """Chroma 后端（真实向量库）。距离越小越相近，此处转为相似度返回（越大越相近）。"""
 
     def __init__(self, path: str = "./data/chroma"):
-        import chromadb  # 延迟导入
+        import chromadb
 
         self._client = chromadb.PersistentClient(path=path)
 
@@ -64,12 +63,21 @@ class ChromaVectorStore:
         return self._client.get_or_create_collection(f"kb_{kb_id}")
 
     def add(self, kb_id, ids, texts, vectors) -> None:
-        self._col(kb_id).add(ids=ids, documents=texts, embeddings=vectors)
+        self._col(kb_id).upsert(ids=ids, documents=texts, embeddings=vectors)
 
     def query(self, kb_id, vector, top_k: int = 5):
         r = self._col(kb_id).query(query_embeddings=[vector], n_results=top_k)
-        return list(zip(r["ids"][0], r["documents"][0], r["distances"][0]))
+        ids = r.get("ids", [[]])[0]
+        docs = r.get("documents", [[]])[0]
+        dists = r.get("distances", [[]])[0]
+        return [(i, d, 1.0 - float(dist)) for i, d, dist in zip(ids, docs, dists)]
 
 
-def default_vector_store(data_dir: str) -> InMemoryVectorStore:
-    return InMemoryVectorStore(os.path.join(data_dir, "vectors.json"))
+def default_vector_store(data_dir: str):
+    """优先真实向量库 Chroma；不可用时回退到内置实现。"""
+    try:
+        import chromadb  # noqa: F401
+
+        return ChromaVectorStore(path=str(Path(data_dir) / "chroma"))
+    except Exception:
+        return InMemoryVectorStore(str(Path(data_dir) / "vectors.json"))
