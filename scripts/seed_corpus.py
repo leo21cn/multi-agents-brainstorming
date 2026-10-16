@@ -32,7 +32,7 @@ def ingest(testdata_dir: Path, db_path, data_dir) -> dict:
     init_db(engine)
     vs = default_vector_store(str(data_dir))
     svc = ConfigService(engine, vs)
-    _configure_embeddings(svc)
+    _install_embeddings(svc)
     counts: dict[str, int] = {}
     for sub, dimension in DIR_TO_DIMENSION.items():
         kb = svc.get_or_create_knowledge_base(dimension.value, dimension)
@@ -40,20 +40,24 @@ def ingest(testdata_dir: Path, db_path, data_dir) -> dict:
         for f in sorted((Path(testdata_dir) / sub).glob("*.md")):
             text = f.read_text(encoding="utf-8")
             chunks_total += len(split_text(text))
-            svc.ingest_document(kb.kb_id, f.name, "md", text)
+            svc.ingest_document(kb.kb_id, f.name, "md", text, size=f.stat().st_size)
         counts[dimension.value] = chunks_total
     return counts
 
 
-def _configure_embeddings(svc: ConfigService) -> None:
+def _install_embeddings(svc: ConfigService) -> None:
     """按已配置的模型连接使用真实嵌入；无连接或空密钥时回退到离线哈希嵌入。"""
     from app.rag import embeddings
 
-    conns = svc.list_connections()
-    if conns and conns[0].api_key:
+    def factory():
+        conn = next((c for c in svc.list_connections() if c.api_key), None)
+        if conn is None:
+            return None
         from app.models.openai_compat import OpenAICompatProvider
 
-        embeddings.configure(OpenAICompatProvider(conns[0].base_url, conns[0].api_key))
+        return OpenAICompatProvider(conn.base_url, conn.api_key, conn.embedding_model)
+
+    embeddings.configure_factory(factory)
 
 
 def main() -> None:

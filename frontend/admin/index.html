@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/icon/favicon.svg">
+<title>火花会 Sparkwave · 管理后台</title>
+<link rel="stylesheet" href="/assets/app.css">
+<style>
+  .layout{display:grid;grid-template-columns:236px 1fr;height:100vh}
+  .side{background:var(--sidebar);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;min-height:0}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 8px 16px}
+  .logo .mark{width:30px;height:30px;border-radius:8px;display:block;flex:0 0 auto}
+  .logo .t{font-weight:600;font-size:14.5px}
+  .logo .t small{display:block;font-weight:400;font-size:11px;color:var(--text-faint);letter-spacing:.06em}
+  .navlabel{font-size:11px;letter-spacing:.08em;color:var(--text-faint);padding:10px 10px 6px}
+  .nav{display:flex;flex-direction:column;gap:2px;min-height:0;overflow-y:auto}
+  .navitem{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--radius);color:var(--text-dim);font-size:13.5px;text-align:left;width:100%}
+  .navitem:hover{background:var(--hover);color:var(--text)}
+  .navitem.on{background:var(--accent-soft);color:var(--accent-strong);font-weight:500}
+  .navitem svg{flex:0 0 auto}
+  .navgroup{display:flex;flex-direction:column;gap:2px}
+  .navitem .chev{margin-left:auto;transition:transform .15s}
+  .navgroup.open > .navitem .chev{transform:rotate(90deg)}
+  .navkids{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+  .navgroup:not(.open) .navkids{display:none}
+  .navitem.navsub{padding-left:37px;font-size:13px}
+  .content{min-height:0;overflow-y:auto;padding:26px 32px 40px}
+  section[hidden]{display:none}
+  .check{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .check:last-child{border-bottom:none}
+  .check .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+  .check .ic.pass{background:var(--ok-soft);color:var(--ok)}
+  .check .ic.wait{background:#f2f3f5;color:var(--text-faint)}
+  .check .tx{flex:1}
+  .check .tx .n{font-size:13.5px}
+  .check .tx .s{font-size:12px;color:var(--text-faint)}
+  .dimhead{display:flex;align-items:baseline;gap:10px}
+  .taglist{display:flex;flex-wrap:wrap;gap:6px}
+  .switchrow{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--text)}
+  .switchrow input{margin-top:3px;flex:0 0 auto}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="side">
+    <div class="logo">
+      <img class="mark" src="/assets/icon/sparkwave-app-icon.svg" alt="火花会 Sparkwave">
+      <div class="t">火花会 Sparkwave<small>管理后台</small></div>
+    </div>
+    <div class="navlabel">系统配置</div>
+    <div class="nav" id="nav">
+      <button class="navitem on" data-p="init">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        初始化状态
+      </button>
+      <button class="navitem" data-p="kb">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        知识库
+      </button>
+      <button class="navitem" data-p="conn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 2v6M15 2v6"/><rect x="6" y="8" width="12" height="6" rx="2"/><path d="M12 14v4a3 3 0 0 0 3 3h2"/></svg>
+        模型连接
+      </button>
+      <button class="navitem" data-p="agent">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg>
+        智能体
+      </button>
+      <button class="navitem" data-p="uiopts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+        界面与行为选项
+      </button>
+      <div class="navgroup open" id="navModelGroup">
+        <button class="navitem" id="navModelToggle" aria-expanded="true" aria-controls="navModelKids">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>
+          功能模型配置
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="navkids" id="navModelKids">
+          <button class="navitem navsub" data-p="conclmodel">结论综合模型</button>
+          <button class="navitem navsub" data-p="asrmodel">语音转写模型</button>
+        </div>
+      </div>
+      <button class="navitem" data-p="token">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        管理后台访问令牌修改
+      </button>
+    </div>
+  </nav>
+
+  <main class="content">
+    <!-- VW-A1 初始化状态 -->
+    <section id="p-init">
+      <div class="crumb">系统配置 / 初始化状态</div>
+      <h1 class="page">初始化状态</h1>
+      <p class="sub">系统需至少有一个知识库与一个已绑定知识库的智能体，方可创建房间。</p>
+      <div class="card" id="initCard"></div>
+      <div class="between">
+        <div class="note" id="initNote">正在检查…</div>
+        <button class="btn primary" id="goRoom">前往建房</button>
+      </div>
+    </section>
+
+    <!-- VW-A2 知识库 -->
+    <section id="p-kb" hidden>
+      <div class="crumb">系统配置 / 知识库</div>
+      <div class="between" style="margin-bottom:4px">
+        <div><h1 class="page">知识库</h1><p class="sub" style="margin-bottom:0">按三个维度维护领域语料，供智能体检索引用。文档经解析、切分、嵌入后写入向量库。</p></div>
+        <div class="inline"><button class="btn" id="btnNewKb">新建知识库</button><button class="btn primary" id="btnUpload">上传文档</button></div>
+      </div>
+      <div style="height:22px"></div>
+      <div id="kbList"></div>
+    </section>
+
+    <!-- VW-A3 模型连接 -->
+    <section id="p-conn" hidden>
+      <div class="crumb">系统配置 / 模型连接</div>
+      <div class="between" style="margin-bottom:4px">
+        <div><h1 class="page">模型连接</h1><p class="sub" style="margin-bottom:0">配置可复用的模型端点与凭据，供智能体选用。API Key 入库受保护，仅以掩码显示，不回传前端明文。</p></div>
+        <button class="btn primary" id="btnNewConn">新建连接</button>
+      </div>
+      <div style="height:22px"></div>
+      <div class="card"><div id="connTable"></div></div>
+    </section>
+
+    <!-- VW-A4 智能体 -->
+    <section id="p-agent" hidden>
+      <div class="crumb">系统配置 / 智能体</div>
+      <div class="between" style="margin-bottom:4px">
+        <div><h1 class="page">智能体</h1><p class="sub" style="margin-bottom:0">为智能体配置模型连接与具体模型、绑定知识库，并直接设定其提示词（人设、专长、发言风格）。系统级实体，可被多个房间选用。</p></div>
+        <button class="btn primary" id="btnNewAgent">新建智能体</button>
+      </div>
+      <div style="height:22px"></div>
+      <div class="card"><div id="agentTable"></div></div>
+    </section>
+
+    <!-- VW-A5 界面与行为选项 -->
+    <section id="p-uiopts" hidden>
+      <div class="crumb">系统配置 / 界面与行为选项</div>
+      <h1 class="page">界面与行为选项</h1>
+      <p class="sub">系统级设置，对全部房间生效；改动即时生效，无需重启服务。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">模拟举手入口<span class="help">房间界面举手栏顶部的「模拟举手」，只对主持人呈现。</span></div>
+          <div class="ctl"><label class="switchrow"><input type="checkbox" id="uiRaiseSim"><span>在房间界面的举手栏显示「模拟举手」入口</span></label></div>
+        </div>
+        <div class="row">
+          <div class="lbl">自主举手<span class="help">智能体在每条新发言后自评发言意愿，愿意说的进入待发言队列并标注「自主」。</span></div>
+          <div class="ctl"><label class="switchrow"><input type="checkbox" id="uiAutoRaise"><span>智能体在每条新发言后自主举手</span></label></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="uiOptsHint">正在读取…</div>
+        <button class="btn primary" id="uiOptsSubmit">保存</button>
+      </div>
+    </section>
+
+    <!-- VW-A6 结论综合模型 -->
+    <section id="p-conclmodel" hidden>
+      <div class="crumb">系统配置 / 功能模型配置 / 结论综合模型</div>
+      <h1 class="page">结论综合模型</h1>
+      <p class="sub">阶段结论的必写章与其后各章由一次模型综合写出；留空则回落房间阵容首位智能体的连接与模型。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">模型连接<span class="help">首项为「不指定，回落房间阵容首位智能体」。</span></div>
+          <div class="ctl"><select id="cmConn"></select></div>
+        </div>
+        <div class="row">
+          <div class="lbl">具体模型<span class="help">选项随所选连接刷新，换连接不沿用旧的模型选择。</span></div>
+          <div class="ctl"><select id="cmModel"></select></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="cmHint">正在读取…</div>
+        <button class="btn primary" id="cmSubmit">保存</button>
+      </div>
+    </section>
+
+    <!-- VW-A7 语音转写模型 -->
+    <section id="p-asrmodel" hidden>
+      <div class="crumb">系统配置 / 功能模型配置 / 语音转写模型</div>
+      <h1 class="page">语音转写模型</h1>
+      <p class="sub">聊天室语音输入的转写模型；留空则语音按钮不可用并给出引导。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">模型连接<span class="help">首项为「未配置，语音按钮不可用」。</span></div>
+          <div class="ctl"><select id="asrConn"></select></div>
+        </div>
+        <div class="row">
+          <div class="lbl">转写模型名<span class="help">缺省为 qwen-audio-3.0-asr-flash-streaming（Qwen-Audio-3.0-ASR 流式型号），可填其他转写模型名。</span></div>
+          <div class="ctl"><input type="text" id="asrModelName" class="mono" placeholder="qwen-audio-3.0-asr-flash-streaming"></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="asrHint">正在读取…</div>
+        <button class="btn primary" id="asrSubmit">保存</button>
+      </div>
+    </section>
+
+    <!-- VW-A8 管理后台访问令牌修改 -->
+    <section id="p-token" hidden>
+      <div class="crumb">系统配置 / 管理后台访问令牌修改</div>
+      <h1 class="page">管理后台访问令牌修改</h1>
+      <p class="sub">令牌入库但受保护：仅用于校验、界面掩码输入、不以明文回传、不入日志与导出。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">新令牌<span class="req">*</span><span class="help">须为 ASCII 可打印字符；校验按 UTF-8 字节做恒定时间比较。</span></div>
+          <div class="ctl"><input type="password" id="tkNew" class="mono" autocomplete="new-password"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">确认新令牌<span class="req">*</span></div>
+          <div class="ctl"><input type="password" id="tkConfirm" class="mono" autocomplete="new-password"></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="tkHint">保存后本标签页随即改用新令牌，旧令牌立即失效，请用新令牌重新登录其他标签页。</div>
+        <button class="btn primary" id="tkSubmit">保存令牌</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 模态：上传文档 -->
+<div class="overlay" id="mUpload">
+  <div class="dialog">
+    <div class="dh"><div class="t">上传知识库文档</div><div class="s">支持 .md / .txt，UTF-8 编码；单文件内容非空。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">目标知识库<span class="req">*</span></div><select id="upKb"></select></div>
+      <div class="frow"><div class="lbl">文档<span class="req">*</span></div><input type="file" id="upFile" accept=".md,.txt"></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="upSubmit">开始上传</button></div>
+  </div>
+</div>
+
+<!-- 模态：新建知识库 -->
+<div class="overlay" id="mKb">
+  <div class="dialog">
+    <div class="dh"><div class="t">新建知识库</div><div class="s">指定名称与所属维度。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">名称<span class="req">*</span></div><input type="text" id="kbName" placeholder="如 HR 组织与岗位"></div>
+      <div class="frow"><div class="lbl">维度<span class="req">*</span></div><select id="kbDim"></select></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="kbSubmit">保存知识库</button></div>
+  </div>
+</div>
+
+<!-- 模态：模型连接 -->
+<div class="overlay" id="mConn">
+  <div class="dialog">
+    <div class="dh"><div class="t" id="connTitle">新建模型连接</div><div class="s">API Key 入库但受保护：界面掩码、仅管理员可见、日志与导出不含、不下发前端明文。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">名称<span class="req">*</span></div><input type="text" id="connName" placeholder="如 DashScope 主"></div>
+      <div class="frow"><div class="lbl">供应商类型<span class="req">*</span></div><select id="connProvider"></select></div>
+      <div class="frow"><div class="lbl">API 地址<span class="req">*</span></div><input type="text" id="connUrl" class="mono" placeholder="https://…/compatible-mode/v1"></div>
+      <div class="frow"><div class="lbl">API Key<span class="req" id="connKeyReq">*</span><span class="help" id="connKeyHelp"></span></div><input type="password" id="connKey" class="mono" placeholder="sk-…"></div>
+      <div class="frow"><div class="lbl">可用模型名<span class="req">*</span><span class="help">逗号分隔，供智能体选择具体模型。</span></div><input type="text" id="connModels" class="mono" placeholder="qwen-max, qwen-plus"></div>
+      <div class="frow"><div class="lbl">嵌入模型名<span class="help">留空使用 text-embedding-v3。更换后既有向量与新查询向量不在同一空间，检索随即失效，需重新入库文档。</span></div><input type="text" id="connEmbed" class="mono" placeholder="text-embedding-v3"></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="connSubmit">保存连接</button></div>
+  </div>
+</div>
+
+<!-- 模态：智能体 -->
+<div class="overlay" id="mAgent">
+  <div class="dialog">
+    <div class="dh"><div class="t" id="agentTitle">新建智能体</div><div class="s">未命名、未选连接/模型、未绑定知识库或人设为空时不可保存；所选模型须在该连接的可用模型名列表内。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">名称<span class="req">*</span></div><input type="text" id="agName" placeholder="如 架构师"></div>
+      <div class="frow"><div class="lbl">模型连接<span class="req">*</span></div><select id="agConn"></select></div>
+      <div class="frow"><div class="lbl">具体模型<span class="req">*</span><span class="help">选项随所选连接刷新。</span></div><select id="agModel"></select></div>
+      <div class="frow"><div class="lbl">知识库绑定<span class="req">*</span><span class="help">一个或多个；差异化绑定带来视角差异。</span></div><div class="choices" id="agKbs"></div></div>
+      <div class="frow"><div class="lbl">人设<span class="req">*</span></div><textarea id="agPersona" placeholder="资深系统架构师…"></textarea></div>
+      <div class="frow"><div class="lbl">专长<span class="req">*</span></div><textarea id="agExpertise" placeholder="技术可行性、架构影响、技术债"></textarea></div>
+      <div class="frow"><div class="lbl">发言风格</div><textarea id="agStyle" placeholder="先定性再给方案"></textarea></div>
+      <div class="frow"><div class="lbl">发言节奏<span class="req">*</span><span class="help">快闪关思考、均衡与深思开思考并限制推理长度。</span></div><select id="agPace"><option value="快闪">快闪</option><option value="均衡">均衡</option><option value="深思">深思</option></select><div class="note" id="agPaceHelp" style="display:none;margin-top:8px">所选模型不支持思考分级，均衡与深思按开思考处理。</div></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="agSubmit">保存智能体</button></div>
+  </div>
+</div>
+
+<!-- 管理员登录（不可点遮罩关闭） -->
+<div class="overlay" id="mLogin">
+  <div class="dialog" style="width:420px">
+    <div class="dh"><div class="t">管理后台登录</div><div class="s">请输入访问令牌以进入系统配置。令牌入库受保护，不以明文回传。</div></div>
+    <div class="db">
+      <div class="note" id="loginHint" style="display:none;margin:6px 0 4px">系统尚未初始化。请先登录，配置至少一个知识库，并创建一个已绑定知识库的智能体，方可建房。</div>
+      <div class="frow"><div class="lbl">访问令牌<span class="req">*</span></div><input type="password" id="loginToken" class="mono" placeholder="首次使用默认令牌 111111" autocomplete="current-password"></div>
+      <div class="note err" id="loginErr" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="df"><button class="btn primary" id="loginSubmit">登录</button></div>
+  </div>
+</div>
+
+<script src="/assets/api.js"></script>
+<script src="/assets/ui.js"></script>
+<script>
+const DIMS = ["业务领域", "项目管理与软件工程方法论", "技术架构"];
+const PROVIDERS = ["OpenAI 兼容", "DashScope 原生"];
+const state = { init:{}, conns:[], kbs:[], docs:[], agents:[] };
+const byId = (arr, k) => Object.fromEntries(arr.map(x => [x[k], x]));
+let editing = { conn:null, agent:null };
+
+async function loadAll(){
+  const [init, conns, kbs, docs, agents] = await Promise.all([
+    api.get('/system/init-status'), api.get('/model-connections'), api.get('/knowledge-bases'),
+    api.get('/documents'), api.get('/agents')
+  ]);
+  if (conns.status === 401 || docs.status === 401) { requireLogin('访问令牌无效或已失效，请重新登录。'); return; }
+  state.init = init.body || {};
+  state.conns = conns.body || [];
+  state.kbs = kbs.body || [];
+  state.docs = docs.body || [];
+  state.agents = agents.body || [];
+  renderAll();
+}
+function renderAll(){ renderInit(); renderKb(); renderConn(); renderAgent(); }
+
+/* ---------- VW-A1 ---------- */
+function checkRow(pass, name, sub){
+  const ic = pass
+    ? '<div class="ic pass"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>'
+    : '<div class="ic wait"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div>';
+  const badge = pass ? '<span class="badge ok">已满足</span>' : '<span class="badge gray">未满足</span>';
+  return `<div class="check">${ic}<div class="tx"><div class="n">${SW.esc(name)}</div><div class="s">${SW.esc(sub)}</div></div>${badge}</div>`;
+}
+function renderInit(){
+  const kbOk = (state.init.kb_count||0) >= 1;
+  const agOk = (state.init.bound_agent_count||0) >= 1;
+  const connOk = state.conns.length >= 1;
+  const kbNames = state.kbs.map(k=>k.name).join('、') || '无';
+  document.getElementById('initCard').innerHTML =
+    checkRow(kbOk, '知识库 ≥ 1', `当前 ${state.init.kb_count||0} 个：${kbNames}`) +
+    checkRow(agOk, '已绑定知识库的智能体 ≥ 1', `当前 ${state.init.bound_agent_count||0} 个智能体已绑定知识库`) +
+    checkRow(connOk, '模型连接可用', `当前 ${state.conns.length} 个连接`);
+  const ready = !!state.init.ready;
+  const note = document.getElementById('initNote');
+  note.className = 'note' + (ready ? ' ok' : '');
+  note.textContent = ready
+    ? '初始化已达标，可创建房间并从已配置智能体中选用阵容。'
+    : '尚未达标：请至少配置一个知识库，并创建一个绑定了知识库的智能体。';
+  document.getElementById('goRoom').disabled = !ready;
+}
+
+/* ---------- VW-A2 ---------- */
+function renderKb(){
+  const docsByKb = {};
+  state.docs.forEach(d => { (docsByKb[d.kb_id] = docsByKb[d.kb_id]||[]).push(d); });
+  const host = document.getElementById('kbList');
+  const desc = {
+    "业务领域":"命题所处业务场景的领域语料，如 HR、财经。",
+    "项目管理与软件工程方法论":"敏捷、Scrum、看板、估算、交付流程、风险管理、成本与投入产出。",
+    "技术架构":"架构模式、技术选型、技术债治理、性能与可扩展性。"
+  };
+  let html = '';
+  DIMS.forEach(dim => {
+    const kbs = state.kbs.filter(k => k.dimension === dim);
+    html += `<div class="card"><div class="dimhead"><h2>${SW.esc(dim)}</h2><span class="muted" style="font-size:12.5px">${kbs.length} 个知识库</span></div><p class="desc">${SW.esc(desc[dim]||'')}</p>`;
+    if (!kbs.length) { html += `<div class="empty">该维度暂无知识库</div>`; }
+    kbs.forEach(kb => {
+      const docs = docsByKb[kb.kb_id] || [];
+      html += `<div class="between" style="margin:10px 0 4px"><span style="font-weight:600;font-size:13.5px">${SW.esc(kb.name)}</span><button class="btn link danger sm" data-del-kb="${kb.kb_id}">删除知识库</button></div>`;
+      if (!docs.length) { html += `<div class="empty" style="padding:12px">暂无文档</div>`; return; }
+      html += `<table><thead><tr><th>文档</th><th>格式</th><th>大小</th><th>状态</th><th>上传时间</th><th></th></tr></thead><tbody>`;
+      docs.forEach(d => {
+        const st = d.status === '已入库' ? '<span class="badge ok">已入库</span>'
+          : d.status === '失败' ? '<span class="badge warn">失败</span>'
+          : '<span class="badge gray">待处理</span>';
+        html += `<tr><td>${SW.esc(d.file_name)}</td><td class="mono">${SW.esc(d.format)}</td><td class="mono muted">${d.size||0} B</td><td>${st}</td><td class="mono muted">${SW.fmtTime(d.uploaded_at)}</td><td><button class="btn link danger" data-del-doc="${d.doc_id}">移除</button></td></tr>`;
+      });
+      html += `</tbody></table>`;
+    });
+    html += `</div>`;
+  });
+  host.innerHTML = html;
+  host.querySelectorAll('[data-del-doc]').forEach(b => b.onclick = () => delDoc(b.dataset.delDoc));
+  host.querySelectorAll('[data-del-kb]').forEach(b => b.onclick = () => delKb(b.dataset.delKb));
+}
+async function delKb(kbId){
+  const kb = state.kbs.find(k => k.kb_id === kbId);
+  if (!confirm(`确认删除知识库「${kb?kb.name:''}」？其下所有文档、分块与向量将一并删除。`)) return;
+  const r = await api.del('/knowledge-bases/'+kbId);
+  if (r.status === 409) return SW.toast(r.error, 'err');
+  if (SW.report(r, '已删除')) await loadAll();
+}
+async function delDoc(docId){
+  if (!confirm('确认移除该文档？其分块与向量将一并删除。')) return;
+  const r = await api.del('/documents/'+docId);
+  if (SW.report(r, '已移除')) { await loadAll(); }
+}
+
+/* ---------- VW-A3 ---------- */
+function renderConn(){
+  const host = document.getElementById('connTable');
+  if (!state.conns.length) { host.innerHTML = '<div class="empty">暂无模型连接，请先新建。</div>'; return; }
+  let html = `<table><thead><tr><th>名称</th><th>供应商</th><th>API 地址</th><th>API Key</th><th>可用模型</th><th>嵌入模型</th><th></th></tr></thead><tbody>`;
+  state.conns.forEach(c => {
+    html += `<tr>
+      <td>${SW.esc(c.name)}</td>
+      <td><span class="badge gray">${SW.esc(c.provider_type)}</span></td>
+      <td class="mono" style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${SW.esc(c.base_url)}</td>
+      <td class="masked">${SW.esc(c.api_key)}</td>
+      <td><span class="badge">${(c.available_models||[]).length} 个</span></td>
+      <td class="mono">${SW.esc(c.embedding_model||'text-embedding-v3')}</td>
+      <td style="white-space:nowrap"><button class="btn link" data-edit-conn="${c.conn_id}">编辑</button><button class="btn link danger" data-del-conn="${c.conn_id}">删除</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  host.innerHTML = html;
+  host.querySelectorAll('[data-edit-conn]').forEach(b => b.onclick = () => openConn(b.dataset.editConn));
+  host.querySelectorAll('[data-del-conn]').forEach(b => b.onclick = () => delConn(b.dataset.delConn));
+}
+async function delConn(id){
+  if (!confirm('确认删除该模型连接？')) return;
+  const r = await api.del('/model-connections/'+id);
+  if (r.status === 409) return SW.toast(r.error, 'err');
+  if (SW.report(r, '已删除')) await loadAll();
+}
+
+/* ---------- VW-A4 ---------- */
+function renderAgent(){
+  const connMap = byId(state.conns,'conn_id'), kbMap = byId(state.kbs,'kb_id');
+  const clip = (s,n)=>{ s=s||''; return s.length>n? s.slice(0,n)+'…' : s; };
+  const host = document.getElementById('agentTable');
+  if (!state.agents.length) { host.innerHTML = '<div class="empty">暂无智能体，请先新建。</div>'; return; }
+  let html = `<table><thead><tr><th>名称</th><th>模型连接 · 模型</th><th>知识库绑定</th><th>发言风格</th><th></th></tr></thead><tbody>`;
+  state.agents.forEach(a => {
+    const conn = connMap[a.model_connection_id];
+    const kbs = (a.kb_ids||[]).map(id => `<span class="badge gray">${SW.esc((kbMap[id]||{}).name||id)}</span>`).join(' ');
+    const style = a.speaking_style ? SW.esc(clip(a.speaking_style,24)) : '<span class="muted">—</span>';
+    html += `<tr>
+      <td>${SW.esc(a.name)}</td>
+      <td class="mono">${SW.esc(conn?conn.name:a.model_connection_id)} · ${SW.esc(a.model_name)} <span class="badge gray">${SW.esc(a.speech_pace || '均衡')}</span></td>
+      <td><span class="taglist">${kbs||'<span class="muted">未绑定</span>'}</span></td>
+      <td style="max-width:220px">${style}</td>
+      <td style="white-space:nowrap"><button class="btn link" data-edit-agent="${a.agent_id}">编辑</button><button class="btn link danger" data-del-agent="${a.agent_id}">删除</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  host.innerHTML = html;
+  host.querySelectorAll('[data-edit-agent]').forEach(b => b.onclick = () => openAgent(b.dataset.editAgent));
+  host.querySelectorAll('[data-del-agent]').forEach(b => b.onclick = () => delAgent(b.dataset.delAgent));
+}
+async function delAgent(id){
+  // 使用中不可删：先看列表负载里的被选用房间数，直接预告，不发必失败的请求
+  const a = (state.agents||[]).find(x => x.agent_id === id);
+  if (a && a.room_count > 0) return SW.toast(`该智能体已被 ${a.room_count} 个房间选用，无法删除`, 'err');
+  if (!confirm('确认删除该智能体？')) return;
+  const r = await api.del('/agents/'+id);
+  // 竞态兜底：列表加载后房间刚好选用 → 服务端 409 中文文案直接透传
+  if (r.status === 409) return SW.toast(r.error, 'err');
+  if (SW.report(r, '已删除')) await loadAll();
+}
+
+/* ---------- 模态：上传文档 ---------- */
+function openUpload(){
+  const sel = document.getElementById('upKb');
+  sel.innerHTML = state.kbs.map(k => `<option value="${k.kb_id}">${SW.esc(k.dimension)} · ${SW.esc(k.name)}</option>`).join('');
+  document.getElementById('upFile').value = '';
+  SW.openModal('mUpload');
+}
+async function submitUpload(){
+  const kbId = document.getElementById('upKb').value;
+  const f = document.getElementById('upFile').files[0];
+  if (!kbId) return SW.toast('请先在知识库视图中创建知识库', 'err');
+  if (!f) return SW.toast('请选择文件', 'err');
+  const fd = new FormData();
+  fd.append('kb_id', kbId);
+  fd.append('file', f);
+  const btn = document.getElementById('upSubmit'); btn.disabled = true; btn.textContent = '上传中…';
+  const r = await api.upload('/documents', fd);
+  btn.disabled = false; btn.textContent = '开始上传';
+  if (SW.report(r, '已入库')) { SW.closeModal('mUpload'); await loadAll(); }
+}
+
+/* ---------- 模态：新建知识库 ---------- */
+function openKb(){
+  document.getElementById('kbName').value = '';
+  document.getElementById('kbDim').innerHTML = DIMS.map(d=>`<option value="${d}">${d}</option>`).join('');
+  SW.openModal('mKb');
+}
+async function submitKb(){
+  const name = document.getElementById('kbName').value.trim();
+  const dimension = document.getElementById('kbDim').value;
+  if (!name) return SW.toast('请填写名称', 'err');
+  const r = await api.post('/knowledge-bases', { name, dimension });
+  if (SW.report(r, '已创建')) { SW.closeModal('mKb'); await loadAll(); }
+}
+
+/* ---------- 模态：模型连接 ---------- */
+function openConn(id){
+  editing.conn = id || null;
+  const c = id ? byId(state.conns,'conn_id')[id] : null;
+  document.getElementById('connTitle').textContent = c ? '编辑连接 · '+c.name : '新建模型连接';
+  document.getElementById('connName').value = c ? c.name : '';
+  const provSel = document.getElementById('connProvider');
+  const provs = c && !PROVIDERS.includes(c.provider_type) ? [c.provider_type, ...PROVIDERS] : PROVIDERS;
+  provSel.innerHTML = provs.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if (c) provSel.value = c.provider_type;
+  document.getElementById('connUrl').value = c ? c.base_url : '';
+  const key = document.getElementById('connKey'); key.value = '';
+  document.getElementById('connKeyReq').style.display = c ? 'none' : '';
+  document.getElementById('connKeyHelp').textContent = c ? '留空表示不修改现有密钥（当前 '+c.api_key+'）。' : '';
+  key.placeholder = c ? '留空则不修改' : 'sk-…';
+  document.getElementById('connModels').value = c ? (c.available_models||[]).join(', ') : '';
+  document.getElementById('connEmbed').value = c ? (c.embedding_model||'') : '';
+  SW.openModal('mConn');
+}
+function parseModels(s){ return s.split(/[,，\n]/).map(x=>x.trim()).filter(Boolean); }
+async function submitConn(){
+  const name = document.getElementById('connName').value.trim();
+  const provider_type = document.getElementById('connProvider').value;
+  const base_url = document.getElementById('connUrl').value.trim();
+  const api_key = document.getElementById('connKey').value.trim();
+  const available_models = parseModels(document.getElementById('connModels').value);
+  const embedding_model = document.getElementById('connEmbed').value.trim();
+  if (!name || !base_url) return SW.toast('名称与 API 地址必填', 'err');
+  if (!available_models.length) return SW.toast('至少填写一个可用模型名', 'err');
+  if (!editing.conn && !api_key) return SW.toast('API Key 必填', 'err');
+  const before = editing.conn ? (byId(state.conns,'conn_id')[editing.conn].embedding_model||'') : '';
+  if (editing.conn && embedding_model !== before &&
+      !confirm('更换嵌入模型后，既有文档向量与新查询向量不在同一空间，检索将失效，需要重新入库全部文档。确认更换？')) return;
+  let r;
+  if (editing.conn) {
+    const body = { name, provider_type, base_url, available_models, embedding_model };
+    if (api_key) body.api_key = api_key;
+    r = await api.patch('/model-connections/'+editing.conn, body);
+  } else {
+    r = await api.post('/model-connections', { name, provider_type, base_url, api_key, available_models, embedding_model });
+  }
+  if (SW.report(r, '已保存')) { SW.closeModal('mConn'); await loadAll(); }
+}
+
+/* ---------- 模态：智能体 ---------- */
+function fillModelOptions(connId, selected){
+  const conn = byId(state.conns,'conn_id')[connId];
+  const models = conn ? (conn.available_models||[]) : [];
+  const sel = document.getElementById('agModel');
+  sel.innerHTML = models.map(m=>`<option value="${m}">${m}</option>`).join('') || '<option value="">（该连接无可用模型）</option>';
+  if (selected && models.includes(selected)) sel.value = selected;
+}
+function renderKbChips(selected){
+  const set = new Set(selected||[]);
+  const host = document.getElementById('agKbs');
+  host.innerHTML = state.kbs.map(k =>
+    `<span class="choice ${set.has(k.kb_id)?'on':''}" data-kb="${k.kb_id}"><span class="tick"></span>${SW.esc(k.name)}</span>`
+  ).join('') || '<span class="muted">尚无知识库</span>';
+  host.querySelectorAll('[data-kb]').forEach(el => el.onclick = () => el.classList.toggle('on'));
+}
+function openAgent(id){
+  editing.agent = id || null;
+  const a = id ? byId(state.agents,'agent_id')[id] : null;
+  document.getElementById('agentTitle').textContent = a ? '编辑智能体 · '+a.name : '新建智能体';
+  document.getElementById('agName').value = a ? a.name : '';
+  const connSel = document.getElementById('agConn');
+  connSel.innerHTML = state.conns.map(c=>`<option value="${c.conn_id}">${SW.esc(c.name)}</option>`).join('') || '<option value="">（无连接）</option>';
+  if (a) connSel.value = a.model_connection_id;
+  fillModelOptions(connSel.value, a ? a.model_name : null);
+  connSel.onchange = () => fillModelOptions(connSel.value, null);
+  renderKbChips(a ? a.kb_ids : []);
+  document.getElementById('agPersona').value = a ? (a.persona||'') : '';
+  document.getElementById('agExpertise').value = a ? (a.expertise||'') : '';
+  document.getElementById('agStyle').value = a ? (a.speaking_style||'') : '';
+  document.getElementById('agPace').value = a ? (a.speech_pace || '均衡') : '均衡';
+  // 能力判定取后端下发字段，前端不重复实现模型名前缀表，避免两套判定口径
+  document.getElementById('agPaceHelp').style.display = (a && a.pace_budget_supported === false) ? '' : 'none';
+  SW.openModal('mAgent');
+}
+async function submitAgent(){
+  const name = document.getElementById('agName').value.trim();
+  const model_connection_id = document.getElementById('agConn').value;
+  const model_name = document.getElementById('agModel').value;
+  const persona = document.getElementById('agPersona').value.trim();
+  const expertise = document.getElementById('agExpertise').value.trim();
+  const speaking_style = document.getElementById('agStyle').value.trim();
+  const speech_pace = document.getElementById('agPace').value;
+  const kb_ids = Array.from(document.querySelectorAll('#agKbs .choice.on')).map(e=>e.dataset.kb);
+  if (!name) return SW.toast('请填写名称', 'err');
+  if (!model_connection_id || !model_name) return SW.toast('请选择模型连接与具体模型', 'err');
+  if (!kb_ids.length) return SW.toast('至少绑定一个知识库', 'err');
+  if (!persona) return SW.toast('请填写人设', 'err');
+  const body = { name, model_connection_id, model_name, kb_ids, persona, expertise, speaking_style, speech_pace };
+  const r = editing.agent
+    ? await api.patch('/agents/'+editing.agent, body)
+    : await api.post('/agents', body);
+  if (SW.report(r, '已保存')) { SW.closeModal('mAgent'); await loadAll(); }
+}
+
+/* ---------- 管理员令牌登录 ---------- */
+const TOKEN_KEY = 'sw_admin_token';
+function showLogin(msg){
+  const err = document.getElementById('loginErr');
+  err.textContent = msg || '';
+  err.style.display = msg ? '' : 'none';
+  document.getElementById('loginHint').style.display = SW.qs('init') === '1' ? '' : 'none';
+  document.getElementById('loginToken').value = '';
+  document.getElementById('mLogin').classList.add('open');
+  setTimeout(() => document.getElementById('loginToken').focus(), 30);
+}
+function requireLogin(msg){
+  sessionStorage.removeItem(TOKEN_KEY);
+  api.setAdminToken('');
+  showLogin(msg);
+}
+async function submitLogin(){
+  const token = document.getElementById('loginToken').value.trim();
+  const err = document.getElementById('loginErr');
+  if (!token) { err.textContent = '请输入访问令牌'; err.style.display = ''; return; }
+  const btn = document.getElementById('loginSubmit'); btn.disabled = true;
+  const r = await api.post('/admin/login', { token });
+  btn.disabled = false;
+  if (r.ok) {
+    sessionStorage.setItem(TOKEN_KEY, token);
+    api.setAdminToken(token);
+    err.style.display = 'none';
+    document.getElementById('mLogin').classList.remove('open');
+    await loadAll();
+    // 登录后重取当前分区的数据：登录前那次进入分区必然读到 401
+    const cur = document.querySelector('.navitem[data-p].on');
+    showPane(cur ? cur.dataset.p : 'init');
+  } else {
+    err.textContent = r.status === 401 ? '访问令牌不正确' : (r.error || ('登录失败 HTTP ' + r.status));
+    err.style.display = '';
+  }
+}
+function loadTokenPane(){
+  // 令牌不可读回，进入分区时清空两个输入框，避免上一次键入的值留在页面上
+  document.getElementById('tkNew').value = '';
+  document.getElementById('tkConfirm').value = '';
+}
+async function submitToken(){
+  const a = document.getElementById('tkNew').value.trim();
+  const b = document.getElementById('tkConfirm').value.trim();
+  if (!a) return SW.toast('请输入新令牌', 'err');
+  if (a !== b) return SW.toast('两次输入不一致', 'err');
+  if (/[^\x20-\x7e]/.test(a)) return SW.toast('令牌须为 ASCII 字符', 'err');
+  const r = await api.patch('/admin/token', { new_token: a });
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '访问令牌已更新')) {
+    sessionStorage.setItem(TOKEN_KEY, a);
+    api.setAdminToken(a);
+    loadTokenPane();
+  }
+}
+/* ---------- 分区：界面与行为选项 ---------- */
+// 分区内的状态行：读成功给出该设置的生效口径，读失败按 err 呈现并说明当前显示的是缺省值
+function setHint(id, ok, text){
+  const el = document.getElementById(id);
+  el.className = ok ? 'note' : 'note err';
+  el.textContent = text;
+}
+async function loadUiOpts(){
+  // 选项为开放只读，回填不需要令牌；写回才需要
+  const r = await api.get('/system/ui-options');
+  const body = r.body || {};
+  document.getElementById('uiRaiseSim').checked = !(body.show_raise_sim === false);
+  document.getElementById('uiAutoRaise').checked = !(body.auto_raise === false);
+  setHint('uiOptsHint', r.ok, r.ok
+    ? '两项均为系统级，改动即时生效、无需重启；已打开的房间页在重新获得焦点后重取选项。'
+    : '选项读取失败，当前显示的是缺省值（模拟举手入口显示、自主举手开启）。读取接口开放，失败通常是服务未就绪。');
+}
+async function submitUiOpts(){
+  // 两个键都要带上：PATCH 是全量写入，漏一个会让它退回缺省值
+  const r = await api.patch('/system/ui-options', {
+    show_raise_sim: document.getElementById('uiRaiseSim').checked,
+    auto_raise: document.getElementById('uiAutoRaise').checked
+  });
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '界面与行为选项已保存')) loadUiOpts();
+}
+/* ---------- 分区：结论综合模型 ---------- */
+function fillConclModelOptions(connId, selected){
+  const conn = byId(state.conns,'conn_id')[connId];
+  const models = conn ? (conn.available_models||[]) : [];
+  const sel = document.getElementById('cmModel');
+  sel.innerHTML = models.map(m=>`<option value="${SW.esc(m)}">${SW.esc(m)}</option>`).join('') || '<option value="">（该连接无可用模型）</option>';
+  if (selected && models.includes(selected)) sel.value = selected;
+}
+async function loadConclModel(){
+  // 读接口也要令牌：连接清单本就只给管理界面，综合模型的取向同样不对外
+  if (!state.conns.length) await loadAll();   // 直接进入本分区时连接清单可能尚未取到
+  const r = await api.get('/system/conclusion-model');
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  const body = r.body || {};
+  const connSel = document.getElementById('cmConn');
+  connSel.innerHTML = '<option value="">（不指定，回落房间阵容首位智能体）</option>'
+    + state.conns.map(c=>`<option value="${c.conn_id}">${SW.esc(c.name)}</option>`).join('');
+  if (body.conn_id) connSel.value = body.conn_id;
+  fillConclModelOptions(connSel.value, body.model_name);
+  connSel.onchange = () => fillConclModelOptions(connSel.value, null);
+  setHint('cmHint', r.ok, r.ok
+    ? '两项都留空表示不指定：每次生成结论时取该房间阵容首位智能体的连接与模型；设置指向的连接被删除、或模型名已不在可用列表内时同样回落。读与写都须管理令牌。'
+    : '设置读取失败（' + (r.error || '未知错误') + '），当前显示的是缺省口径：不指定、回落房间阵容首位智能体。读接口须管理令牌。');
+}
+async function submitConclModel(){
+  const connId = document.getElementById('cmConn').value || null;
+  // 连接与模型名须成对提交：留空连接时模型名一并置空，服务端按「同时给出或同时留空」校验
+  const modelName = connId ? (document.getElementById('cmModel').value || null) : null;
+  const r = await api.patch('/system/conclusion-model', {conn_id: connId, model_name: modelName});
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '结论综合模型已保存')) loadConclModel();
+}
+/* ---------- 分区：语音转写模型 ---------- */
+async function loadAsrModel(){
+  if (!state.conns.length) await loadAll();   // 直接进入本分区时连接清单可能尚未取到
+  const r = await api.get('/system/asr-model');
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  const body = r.body || {};
+  const connSel = document.getElementById('asrConn');
+  connSel.innerHTML = '<option value="">（未配置，语音按钮不可用）</option>'
+    + state.conns.map(c=>`<option value="${c.conn_id}">${SW.esc(c.name)}</option>`).join('');
+  if (body.conn_id) connSel.value = body.conn_id;
+  // 缺省模型名 qwen-audio-3.0-asr-flash-streaming（Qwen-Audio-3.0-ASR 流式型号）：未配置时预填缺省值
+  document.getElementById('asrModelName').value = body.model_name || 'qwen-audio-3.0-asr-flash-streaming';
+  setHint('asrHint', r.ok, r.ok
+    ? '两项都留空表示未配置：房间页点语音按钮时提示先到本页配置。转写经所选连接的 API Key 调用 DashScope Qwen-Audio-3.0-ASR 流式识别；音频只在内存中处理，不落盘、不入日志。读与写都须管理令牌。'
+    : '设置读取失败（' + (r.error || '未知错误') + '），当前显示的是缺省口径：未配置、模型名预填 qwen-audio-3.0-asr-flash-streaming。读接口须管理令牌。');
+}
+async function submitAsrModel(){
+  const connId = document.getElementById('asrConn').value || null;
+  const modelName = connId ? (document.getElementById('asrModelName').value.trim() || null) : null;
+  if (connId && !modelName) return SW.toast('请填写转写模型名', 'err');
+  const r = await api.patch('/system/asr-model', {conn_id: connId, model_name: modelName});
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '语音转写模型已保存')) loadAsrModel();
+}
+function boot(){
+  const saved = sessionStorage.getItem(TOKEN_KEY);
+  if (saved) {
+    api.setAdminToken(saved);
+    loadAll().catch(e => SW.toast('加载失败：'+e.message, 'err'));
+  } else {
+    showLogin('');
+  }
+}
+
+/* ---------- 导航与分区切换 ---------- */
+// 八个内容分区与左侧条目一一对应：前四项是系统级实体，后四项是系统设置
+const PANES = ['init','kb','conn','agent','uiopts','conclmodel','asrmodel','token'];
+function showPane(p){
+  document.querySelectorAll('.navitem[data-p]').forEach(x => x.classList.toggle('on', x.dataset.p === p));
+  PANES.forEach(k => { document.getElementById('p-'+k).hidden = k !== p; });
+  document.querySelector('.content').scrollTop = 0;
+  // 进入分区时才取该分区的数据：令牌不可读回，其余三项各有开放读或须令牌的读接口
+  if (p === 'uiopts') loadUiOpts();
+  else if (p === 'conclmodel') loadConclModel();
+  else if (p === 'asrmodel') loadAsrModel();
+  else if (p === 'token') loadTokenPane();
+}
+function wireNav(){
+  document.querySelectorAll('.navitem[data-p]').forEach(it => it.onclick = () => {
+    // 子项被选中时把「功能模型配置」分组展开，避免选中项藏在折叠里
+    const kids = it.closest('.navkids');
+    if (kids) {
+      const grp = kids.parentElement;
+      grp.classList.add('open');
+      const tg = grp.querySelector('[aria-expanded]');
+      if (tg) tg.setAttribute('aria-expanded', 'true');
+    }
+    showPane(it.dataset.p);
+  });
+  // 「功能模型配置」是两级导航的父级：只管折叠，自身不切换分区
+  const group = document.getElementById('navModelGroup');
+  const toggle = document.getElementById('navModelToggle');
+  toggle.onclick = () => {
+    const open = group.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+}
+function wire(){
+  wireNav();
+  ['mUpload','mKb','mConn','mAgent'].forEach(SW.wireModal);
+  document.getElementById('goRoom').onclick = () => location.href = '/lobby/';
+  document.getElementById('btnUpload').onclick = openUpload;
+  document.getElementById('upSubmit').onclick = submitUpload;
+  document.getElementById('btnNewKb').onclick = openKb;
+  document.getElementById('kbSubmit').onclick = submitKb;
+  document.getElementById('btnNewConn').onclick = () => openConn(null);
+  document.getElementById('connSubmit').onclick = submitConn;
+  document.getElementById('btnNewAgent').onclick = () => openAgent(null);
+  document.getElementById('agSubmit').onclick = submitAgent;
+  document.getElementById('loginSubmit').onclick = submitLogin;
+  document.getElementById('loginToken').onkeydown = (e) => { if (e.key === 'Enter') submitLogin(); };
+  document.getElementById('tkSubmit').onclick = submitToken;
+  document.getElementById('uiOptsSubmit').onclick = submitUiOpts;
+  document.getElementById('cmSubmit').onclick = submitConclModel;
+  document.getElementById('asrSubmit').onclick = submitAsrModel;
+}
+wire();
+boot();
+</script>
+</body>
+</html>

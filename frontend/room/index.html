@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/icon/favicon.svg">
+<title>火花会 Sparkwave · 头脑风暴房间</title>
+<link rel="stylesheet" href="/assets/app.css">
+<style>
+  /* ---------- 进房落地页（头部与版心） ---------- */
+  .lobbytop{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .lobbytop img.mark{width:30px;height:30px;border-radius:8px;display:block}
+  .lobbytop .title{font-weight:600;font-size:15px}
+  .lobbytop .crumb{font-size:12px;color:var(--text-faint)}
+  .wrap{max-width:860px;margin:26px auto 60px;padding:0 24px}
+  h2.page{margin:0 0 4px;font-size:20px;font-weight:600}
+
+  /* ---------- 进房落地页与发言权提示 ---------- */
+  #landing .pick{cursor:default}
+  #landing .pick.claim{cursor:pointer}
+  #landing .req{color:var(--danger);margin-left:3px}
+  .floorbar{display:flex;align-items:center;gap:10px;padding:9px 20px;background:var(--accent-soft);border-top:1px solid var(--line);font-size:12.5px;color:var(--accent-strong)}
+  .floorbar[hidden]{display:none}
+  /* 关闭钮只挂在入门说明那一条上；「已举手」「已放行」是状态信号，关掉会让人错过轮到自己发言 */
+  .floorbar .hintx{margin-left:auto;flex:0 0 auto;padding:0 3px;background:none;border:0;border-radius:4px;color:inherit;font-size:15px;line-height:1;opacity:.55;cursor:pointer}
+  .floorbar .hintx:hover{opacity:1;background:rgba(0,0,0,.06)}
+  .floorbar .hintx:focus-visible{outline:2px solid var(--accent-strong);outline-offset:1px;opacity:1}
+
+  /* ---------- 房间（讨论） ---------- */
+  .app{height:100vh;display:grid;grid-template-rows:auto 1fr auto auto}
+  .topbar{display:flex;align-items:center;gap:16px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .brand .mark{width:30px;height:30px;border-radius:8px;flex:0 0 auto;display:block}
+  .brand .brandtitle{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap}
+  .propbar{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--agent-bg);border-bottom:1px solid var(--agent-line);border-left:3px solid var(--accent);margin:12px 24px 0;border-radius:8px 8px 0 0}
+  .propbar .k{flex:0 0 auto;font-size:11px;letter-spacing:.08em;color:var(--text-faint);padding:2px 8px;border-radius:999px;background:#fff;border:1px solid var(--agent-line)}
+  .propbar .pt{font-size:13.5px;color:var(--text);white-space:pre-wrap;word-break:break-word;line-height:1.6}
+  .topbar .spacer{flex:1}
+  .status{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:12px;background:var(--agent-bg);color:var(--agent-fg);border:1px solid var(--agent-line);white-space:nowrap}
+  .status .dot{width:7px;height:7px;border-radius:50%;background:var(--agent-fg)}
+  .status.pending{background:var(--raise-bg);color:var(--raise-fg);border-color:var(--raise-line)}
+  .status.pending .dot{background:var(--raise-fg)}
+  .status.ended{background:#f2f3f5;color:var(--text-dim);border-color:var(--line)}
+  .status.ended .dot{background:var(--text-faint)}
+  .roomcode{font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:.06em;white-space:nowrap}
+  .topbtn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;font-size:13px;background:#fff;border:1px solid var(--line-strong);color:var(--text-dim);white-space:nowrap}
+  .topbtn:hover{border-color:var(--text-faint);color:var(--text)}
+  .topbtn[hidden]{display:none}
+  .topbtn.danger{color:var(--danger);border-color:var(--danger-line)}
+  .topbtn.danger:hover{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)}
+
+  .stage{display:grid;grid-template-columns:1fr 320px;min-height:0}
+  .stage-left{display:flex;flex-direction:column;min-height:0}
+  .stream{flex:1;overflow-y:auto;padding:22px 24px 12px;min-height:0}
+  .daymark{text-align:center;font-size:12px;color:var(--text-faint);margin:4px 0 18px;font-family:var(--mono);letter-spacing:.05em}
+  .banner{margin:0 0 16px;padding:11px 14px;border-radius:var(--radius);font-size:13px;display:flex;align-items:center;gap:12px}
+  .banner.pending{background:var(--raise-bg);border:1px solid var(--raise-line);color:var(--raise-fg)}
+  .banner.ended{background:#f2f3f5;border:1px solid var(--line);color:var(--text-dim)}
+  .msg{display:flex;gap:12px;padding:9px 10px;border-radius:var(--radius)}
+  .msg:hover{background:var(--hover-soft)}
+  .avatar{width:36px;height:36px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;font-weight:600;font-size:14px}
+  .av-agent{background:var(--agent-bg);color:var(--agent-fg)}
+  .av-human{background:var(--human-bg);color:var(--human-fg)}
+  .av-host{background:var(--host-bg);color:var(--host-fg)}
+  .body{min-width:0;flex:1}
+  .meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:3px}
+  .name{font-weight:600;font-size:13.5px}
+  .role{font-size:11.5px;color:var(--text-faint)}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;background:#f2f3f5;border:1px solid var(--line);color:var(--text-dim)}
+  .tag-host{background:var(--accent-soft);border-color:transparent;color:var(--accent-strong)}
+  .prov{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:6px;background:var(--agent-bg);border:1px solid var(--agent-line);color:var(--agent-fg)}
+  .prov.none{background:#f2f3f5;border-color:var(--line);color:var(--text-faint)}
+  .text{color:#2b3038;font-size:14px;white-space:pre-wrap;word-break:break-word}
+  /* 发言正文按 Markdown 呈现：气泡内的紧凑文档排版，全部取既有设计令牌 */
+  .text.md{white-space:normal;line-height:1.65}
+  .text.md>*:first-child{margin-top:0}
+  .text.md>*:last-child{margin-bottom:0}
+  .text.md p{margin:0 0 8px}
+  .text.md h1,.text.md h2,.text.md h3,.text.md h4,.text.md h5,.text.md h6{margin:14px 0 6px;font-size:14px;font-weight:600;line-height:1.5;color:var(--text)}
+  .text.md h1,.text.md h2{font-size:14.5px}
+  .text.md ul,.text.md ol{margin:0 0 8px;padding-left:21px}
+  .text.md li{margin:3px 0}
+  .text.md li>ul,.text.md li>ol{margin:3px 0}
+  .text.md li>p{margin:0}
+  .text.md blockquote{margin:0 0 8px;padding:1px 0 1px 10px;border-left:3px solid var(--line-strong);color:var(--text-dim)}
+  .text.md hr{margin:12px 0;border:0;border-top:1px solid var(--line)}
+  .text.md code{font-family:var(--mono);font-size:12.5px;padding:1px 5px;border-radius:5px;background:var(--hover-soft);border:1px solid var(--line)}
+  .text.md pre{margin:0 0 8px;padding:10px 12px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);overflow-x:auto;white-space:pre}
+  .text.md pre code{padding:0;background:none;border:0;font-size:12.5px;line-height:1.6}
+  .text.md table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:0 0 8px;font-size:13px}
+  .text.md th,.text.md td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  .text.md th{background:var(--panel);font-weight:600}
+  .text.md a{color:var(--accent-strong);text-decoration:underline}
+  .text.md strong{font-weight:600}
+  .text.md img{max-width:100%}
+  .time{font-size:11px;color:var(--text-faint);font-family:var(--mono);margin-left:auto}
+  .typing{display:flex;gap:12px;padding:9px 10px;color:var(--text-faint);font-size:13px;align-items:center}
+  .typing .avatar{background:var(--agent-bg);color:var(--agent-fg)}
+  /* 等待行复用 .typing 的排版但主体是人：头像配色须盖回人类与主持人的两档 */
+  .typing .avatar.av-human{background:var(--human-bg);color:var(--human-fg)}
+  .typing .avatar.av-host{background:var(--host-bg);color:var(--host-fg)}
+  .msg.live{background:var(--agent-bg);border:1px solid var(--agent-line)}
+  .msg.live:hover{background:var(--agent-bg)}
+  .msg.live .text:empty::before{content:'正在组织语言';color:var(--text-faint);font-size:13px}
+  .stage{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:6px;background:#fff;border:1px solid var(--agent-line);color:var(--agent-fg)}
+  .dots span{display:inline-block;width:5px;height:5px;margin:0 1px;border-radius:50%;background:var(--agent-fg);animation:blink 1.2s infinite}
+  .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  /* 思考过程：过程信息，层级低于正文；默认折叠，气泡被落库消息替换后随之消失 */
+  .thought{margin:0 0 7px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+  .thought[hidden]{display:none}
+  .thought summary{cursor:pointer;list-style:none;padding:6px 10px;font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .thought summary::-webkit-details-marker{display:none}
+  .thought summary::before{content:'▸ '}
+  .thought[open] summary::before{content:'▾ '}
+  .thought-text{padding:8px 10px 9px;border-top:1px solid var(--line);font-size:12px;line-height:1.65;color:var(--text-dim);white-space:pre-wrap}
+
+  .panel{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{flex:1;padding:13px 8px;font-size:13px;color:var(--text-dim);border-bottom:2px solid transparent;text-align:center}
+  .tab.on{color:var(--text);border-bottom-color:var(--accent)}
+  .tab .n{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-left:5px}
+  /* 举手数字标亮只给主持人：队列非空而他不在看举手栏时提醒，呼吸动画在减弱动效偏好下退为常亮 */
+  .tab.alert .n{background:var(--accent);color:#fff;border-radius:8px;padding:1px 6px;animation:handpulse 1.6s infinite}
+  @keyframes handpulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .pane{overflow-y:auto;padding:14px;min-height:0;flex:1}
+  .pane[hidden]{display:none}
+  .sect{font-size:11px;letter-spacing:.09em;color:var(--text-faint);text-transform:uppercase;margin:6px 4px 9px}
+  .pane-act{display:flex;justify-content:flex-end;margin:0 4px 10px}
+  .member{display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:var(--radius)}
+  .member:hover{background:#fff}
+  .member .avatar{width:32px;height:32px;border-radius:9px;font-size:12.5px}
+  .member .info{min-width:0;flex:1}
+  .member .n{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .member .s{font-family:var(--mono);font-size:11px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .member .flag{font-size:11px;color:var(--accent-strong);background:var(--accent-soft);padding:1px 7px;border-radius:999px}
+  .member .mini{font-size:11px;color:var(--text-dim);padding:2px 7px;border-radius:999px;border:1px solid var(--line-strong)}
+  .member .mini:hover{border-color:var(--accent);color:var(--accent-strong)}
+
+  .hand-item{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);padding:12px;margin-bottom:10px}
+  .hand-item .top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .hand-item .n{font-size:13px;font-weight:500}
+  .hand-item .s{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .hand-item .intent{font-size:12.5px;color:var(--text-dim);margin-bottom:10px}
+  .hand-actions{display:flex;gap:8px}
+  .btn-allow{flex:1;padding:7px;border-radius:8px;font-size:12.5px;background:var(--accent-strong);color:#fff;font-weight:500}
+  .btn-allow:hover{background:#1f7dff}
+  .btn-allow:disabled{opacity:.5;cursor:not-allowed}
+  .btn-deny{flex:.7;padding:7px;border-radius:8px;font-size:12.5px;background:#fff;border:1px solid var(--line-strong);color:var(--text-dim)}
+  .btn-deny:hover{border-color:var(--text-faint);color:var(--text)}
+  .btn-deny:disabled{opacity:.5;cursor:not-allowed}
+
+  .controlbar{background:var(--panel);border-top:1px solid var(--line);padding:11px 20px;display:flex;align-items:center;gap:16px}
+  .composer{flex:1;display:flex;align-items:center;gap:10px;position:relative}
+  .composer input{flex:1;background:#fff;border:1px solid var(--line-strong);color:var(--text);padding:11px 14px;border-radius:var(--radius);font-family:inherit;font-size:13.5px;outline:none}
+  .composer input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .send{padding:11px 20px;border-radius:var(--radius);background:var(--accent-strong);color:#fff;font-size:13.5px;font-weight:500}
+  .micbtn{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--text-dim);display:grid;place-items:center;cursor:pointer}
+  .micbtn:hover{border-color:var(--accent);color:var(--accent-strong)}
+  .micbtn:disabled{opacity:.5;cursor:not-allowed}
+  .micbtn.rec{background:var(--danger);border-color:var(--danger);color:#fff;animation:micpulse 1.2s infinite}
+  @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.35)}70%{box-shadow:0 0 0 8px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+  .send:hover{background:#1f7dff}
+  .send:disabled{opacity:.5;cursor:not-allowed}
+  /* @ 提及候选层：浮在输入框上方，与模态共用 .pick 行样式 */
+  .mention-pop{position:absolute;left:0;right:88px;bottom:calc(100% + 8px);background:#fff;border:1px solid var(--line-strong);border-radius:var(--radius-lg);box-shadow:0 8px 28px rgba(31,35,41,.14);padding:6px;max-height:252px;overflow-y:auto;z-index:30}
+  .mention-pop[hidden]{display:none}
+  .mention-pop .hint{font-size:11px;color:var(--text-faint);padding:4px 8px 7px}
+  .tag-to{background:var(--agent-bg);border-color:var(--agent-line);color:var(--agent-fg)}
+  .tag-cut{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)}
+  .tag-src{background:var(--raise-bg);border-color:var(--raise-line);color:var(--raise-fg);margin-left:6px}
+
+  /* @ 候选层与举手模态共用的选择行 */
+  .pick{display:flex;align-items:center;gap:11px;padding:10px;border-radius:10px;cursor:pointer}
+  .pick:hover{background:var(--panel)}
+  .pick.on{background:var(--accent-soft)}
+  .pick .avatar{width:32px;height:32px;border-radius:9px;font-size:12.5px}
+  .pick .info{min-width:0;flex:1}
+  .pick .info .n{display:block;font-size:13px;font-weight:500}
+  .pick .info .s{display:block;font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .pick .sel{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-strong);flex:0 0 auto}
+  .pick.on .sel{border-color:var(--accent-strong);background:var(--accent-strong);box-shadow:inset 0 0 0 3px #fff}
+
+  /* 结论文档 */
+  .doc .propbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 15px;margin:6px 0 18px}
+  .doc .propbox .k{font-size:11px;letter-spacing:.08em;color:var(--text-faint);text-transform:uppercase;margin-bottom:3px}
+  .doc .propbox .v{font-size:15px;font-weight:600}
+  .sec{padding:14px 0;border-top:1px solid var(--line)}
+  .sec h3{margin:0 0 10px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .sec h3 .no{font-family:var(--mono);font-size:11px;color:var(--accent-strong);background:var(--accent-soft);width:20px;height:20px;border-radius:6px;display:grid;place-items:center}
+  .sec ul{margin:0;padding-left:20px}
+  .sec li{margin:0 0 8px;line-height:1.6}
+  .sec .plain{font-size:13.5px;color:var(--text-dim);line-height:1.6;white-space:pre-wrap}
+  .provtag{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:6px;background:var(--agent-bg);border:1px solid var(--agent-line);color:var(--agent-fg);margin-left:6px;white-space:nowrap}
+  .exp{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);font-size:13px}
+  .exp:first-of-type{border-top:none}
+  .exp .ic{width:32px;height:32px;border-radius:8px;background:var(--panel);display:grid;place-items:center;color:var(--text-dim);flex:0 0 auto}
+  .exp .meta{flex:1;min-width:0}
+  .exp .meta .n{font-size:13px}
+  .exp .meta .s{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+  .exp .dl{font-size:12.5px;color:var(--accent-strong)}
+  .dialog.wide{width:760px}
+
+  @media (prefers-reduced-motion: reduce){
+    .dots span{animation:none;opacity:.55}
+    .tab.alert .n{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== 进房落地页 ===================== -->
+<div id="landing" hidden>
+  <header class="lobbytop">
+    <img class="mark" src="/assets/icon/sparkwave-app-icon.svg" alt="火花会 Sparkwave">
+    <div><div class="title">火花会 Sparkwave</div><div class="crumb">房间界面 / 受邀进房</div></div>
+  </header>
+  <div class="wrap" style="max-width:660px">
+    <div id="landNote"></div>
+    <h2 class="page" id="landProp">—</h2>
+    <p class="sub" id="landMeta"></p>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:600">主持人</h3>
+      <div id="landHost"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600" id="landAgentHead">智能体阵容</h3>
+      <p class="desc">每位绑定不同知识库，发言附来源标注。</p>
+      <div id="landAgents"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:600" id="landMemberHead">已加入的成员</h3>
+      <div id="landMembers"></div>
+    </div>
+
+    <div class="card" id="landJoinCard">
+      <h3 id="landClaimHead" hidden style="margin:0 0 3px;font-size:14.5px;font-weight:600">认领既有身份</h3>
+      <div id="landJoinForm">
+        <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600">你的昵称<span class="req">*</span></h3>
+        <p class="desc">房间内唯一，也不得与阵容内智能体同名。进入后即以该身份发言；与智能体同权，须举手并经主持人放行，或由主持人 @ 你。</p>
+        <div class="inline">
+          <input type="text" id="landName" placeholder="如 林工" style="max-width:240px">
+          <button class="btn primary" id="btnJoin">进入房间</button>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12.5px">
+        <a href="#" id="landClaimToggle" style="color:var(--accent-strong)">我是既有成员</a>
+        <div id="landClaimBody" hidden style="margin-top:10px">
+          <p class="desc" style="margin-bottom:8px">换了浏览器或清了标签页数据之后，凭管理令牌认领既有身份。</p>
+          <div id="landClaimList"></div>
+          <div class="inline" style="margin-top:8px">
+            <input type="password" id="landAdminToken" placeholder="管理令牌" style="max-width:180px">
+            <button class="btn" id="btnClaim">认领并进入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 房间 ===================== -->
+<div class="app" id="roomView" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <img class="mark" src="/assets/icon/sparkwave-app-icon.svg" alt="火花会 Sparkwave">
+      <span class="brandtitle">Sparkwave - 火花会</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="status" id="rmStatus"><span class="dot"></span>—</span>
+    <span class="roomcode" id="rmCode"></span>
+    <button class="topbtn" id="btnConclusion">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+      产出
+    </button>
+    <button class="topbtn" id="btnInvite">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+      邀请成员
+    </button>
+    <button class="topbtn danger" id="btnEnd">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h12"/></svg>
+      结束
+    </button>
+    <button class="topbtn" id="btnLeave">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      退出聊天室
+    </button>
+  </header>
+
+  <div class="stage">
+    <div class="stage-left">
+      <div class="propbar" id="propBar"><span class="k">命题</span><div class="pt" id="propText">—</div></div>
+      <section class="stream" id="stream"></section>
+    </div>
+    <aside class="panel">
+      <div class="tabs">
+        <button class="tab on" data-tab="members">成员<span class="n" id="cntMembers">0</span></button>
+        <button class="tab" data-tab="hands">举手<span class="n" id="cntHands">0</span></button>
+      </div>
+      <div class="pane" id="pane-members"></div>
+      <div class="pane" id="pane-hands" hidden></div>
+    </aside>
+  </div>
+
+  <div class="floorbar" id="floorHint" hidden></div>
+  <footer class="controlbar">
+    <div class="composer">
+      <div class="mention-pop" id="mentionPop" hidden></div>
+      <div class="mention-pop" id="skillPop" hidden></div>
+      <input type="text" id="composerInput" placeholder="以主持人身份发言，@ 可定向提问智能体或成员，/ 可调用技能…">
+      <button class="micbtn" id="btnMic" title="语音输入" aria-label="语音输入">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/></svg>
+      </button>
+      <button class="send" id="btnSend">发送</button>
+    </div>
+  </footer>
+</div>
+
+<!-- 模态：举手 -->
+<div class="overlay" id="mRaise">
+  <div class="dialog">
+    <div class="dh"><div class="t">模拟智能体举手</div><div class="s">演示插嘴流程：入队后由主持人放行或驳回。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">举手意图</div><input type="text" id="raiseIntent" placeholder="想补充的观点…"></div>
+      <div id="raiseList"></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="raiseConfirm">举手入队</button></div>
+  </div>
+</div>
+
+<!-- 模态：邀请成员 -->
+<div class="overlay" id="mInvite">
+  <div class="dialog">
+    <div class="dh"><div class="t">邀请成员</div><div class="s">把房间链接发给要加入的人，对方自助填昵称进房。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">房间链接</div>
+        <div class="inline"><input type="text" id="inviteLink" readonly class="mono"><button class="btn sm" id="copyLink">复制</button></div>
+      </div>
+      <div class="frow"><div class="lbl">已加入</div><div id="inviteJoined"></div></div>
+    </div>
+    <div class="df"><button class="btn" data-close>关闭</button></div>
+  </div>
+</div>
+
+<!-- 模态：退出聊天室（主持人移交场景）；只有指定新主持人后才能退出 -->
+<div class="overlay" id="mLeave">
+  <div class="dialog">
+    <div class="dh"><div class="t">退出聊天室</div><div class="s">你当前是主持人，退出前须指定一位人类成员接任主持。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">新主持人</div><div id="leaveList"></div></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="btnLeaveConfirm" disabled>移交主持并退出</button></div>
+  </div>
+</div>
+
+<!-- 模态：产出（查看与下载）；生成与导出是主持人的斜杠技能，不在模态里放动作按钮 -->
+<div class="overlay" id="mConclusion">
+  <div class="dialog wide">
+    <div class="dh"><div class="t">产出</div><div class="s">结论文档由主持人以斜杠技能生成，以命题与会话记忆综合；关键观点与分歧点标注来源智能体及其知识库。</div></div>
+    <div class="db" id="conclusionBody"></div>
+    <div class="df">
+      <button class="btn" data-close>关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态：阶段结论生成中。生成期间暂停发言，只能由完成事件或本地请求收尾关闭，
+     故没有关闭按钮，也不加入 wireModal 列表 -->
+<div class="overlay" id="mConcluding">
+  <div class="dialog">
+    <div class="dh"><div class="t">阶段结论</div><div class="s">产出生成中，请稍等…</div></div>
+    <div class="db"><p class="desc">阶段结论产出生成中，请稍等… 生成期间暂停发言，完成后自动展示产出。</p></div>
+  </div>
+</div>
+
+<script src="/assets/vendor/markdown-it.min.js"></script>
+<script src="/assets/api.js"></script>
+<script src="/assets/ui.js"></script>
+<script>
+const ref = { agents:[], kbs:[], agentMap:{}, kbMap:{}, ui:null };
+let roomId = null, room = null, members = [], queue = [], roster = [], busy = false;
+let me = null, floorIds = [], floorReason = 'released', pendingIntent = '';
+// 阶段结论生成中：底栏禁用、全房间呈现等待模态；由 WS 事件与本地的触发路径共同维护
+let concluding = false;
+let landRoomId = null, landClaimId = null;
+// 最近一次定向提问的受话者名；用于把生成失败的提示改为「问题已发出」口径
+let lastDirectedNames = [];
+let ws = null, raiseTarget = null;
+let wsRetry = 0, wsReconnect = false;
+let live = null, lastRefReload = 0;
+
+const fmtClock = (iso) => { if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); };
+const canDiscuss = () => room && room.status === '讨论中';
+
+/* ---------- 我在本房间的身份 ---------- */
+// 显示名与是否主持人一律取自成员名单，不取 sessionStorage：主持人变更后界面不该停在过期角色上
+const isHost = () => !!me && me.is_host === true;
+const hasFloor = () => !!me && floorIds.indexOf(me.member_id) >= 0;
+const myHand = () => queue.find(q => q.member_id === (me ? me.member_id : null)) || null;
+function memberName(id){
+  const m = members.find(x => x.member_id === id);
+  return m ? m.display_name : '人类成员';
+}
+
+/* ---------- 发言正文 Markdown ---------- */
+// html:false 使源文本的尖括号一律转义为文字，输出标签全部由渲染器生成，故不需额外消毒；
+// disable('image') 去掉 img，避免正文触发外部图片请求；链接的 javascript: 一类由渲染器内置校验拦下。
+const md = (function(){
+  if (typeof window.markdownit !== 'function') return null;
+  const r = window.markdownit({ html:false, breaks:true, linkify:false, typographer:false });
+  r.disable('image');
+  return r;
+})();
+
+function bodyHtml(content){
+  // 模型常输出裸 <br>，先归一为换行；其余陌生标签不解释，照旧转义可见
+  const text = String(content == null ? '' : content).replace(/<br\s*\/?>/gi, '\n');
+  if (!md) return { html: SW.esc(text), cls: '' };
+  return { html: md.render(text), cls: ' md' };
+}
+
+async function loadRef(){
+  const [agents, kbs, ui] = await Promise.all([
+    api.get('/agents'), api.get('/knowledge-bases'), api.get('/system/ui-options')
+  ]);
+  ref.agents = agents.body||[]; ref.kbs = kbs.body||[]; ref.ui = ui.body||null;
+  ref.kbMap = Object.fromEntries(ref.kbs.map(k=>[k.kb_id,k.name]));
+  ref.agentMap = Object.fromEntries(ref.agents.map(a=>[a.agent_id, {
+    name:a.name, model_name:a.model_name,
+    kb_names:(a.kb_ids||[]).map(id=>ref.kbMap[id]||id)
+  }]));
+}
+const summarize = (a) => { const m=ref.agentMap[a]||{}; return `${m.model_name||''} · ${(m.kb_names||[]).join(' · ')||'无知识库'}`; };
+
+/* 配置热刷新：管理界面改动后无需重载房间页即可反映到模型名与来源标注 */
+async function reloadRef(force){
+  if (!roomId) return;
+  const now = Date.now();
+  if (!force && now - lastRefReload < 1500) return;
+  lastRefReload = now;
+  await loadRef();
+  // 发言权与房间状态只在重取时更新：主持人经降级通道放行后，成员重获焦点即解锁；
+  // 成员名单同样重取——主持权移交只改名单，拿旧数组重画会让自己停在旧身份上
+  await refreshRoom();
+  await refreshMembers();
+  renderQueue();
+  await refreshMessages();
+}
+
+/* 建房与已有房间列表已拆分到独立大厅页 /lobby/；本页只承载进房落地页与聊天室 */
+function enterWithIdentity(id){
+  const saved = SW.member.load(id);
+  if (saved && saved.member_id && saved.token){
+    api.setMember(saved.member_id, saved.token);
+    return enterRoom(id);
+  }
+  // 本标签页没有该房间的身份就走落地页；顺带清掉上一个房间遗留的请求头
+  api.clearMember();
+  return showLanding(id);
+}
+
+/* ===================== 进房落地页（VW-R6） ===================== */
+async function showLanding(id){
+  landRoomId = id;
+  roomId = null; room = null; me = null;
+  if (ws) { try{ws.close();}catch(_){} ws=null; }
+  document.getElementById('roomView').hidden = true;
+  document.getElementById('landing').hidden = false;
+  await loadRef();
+  await renderLanding();
+  const name = document.getElementById('landName');
+  name.value = ''; name.focus();
+}
+function memberRow(m){
+  return `<div class="member">
+    <div class="avatar ${m.is_host?'av-host':'av-human'}">${SW.initial(m.display_name)}</div>
+    <div class="info"><div class="n">${SW.esc(m.display_name)}</div><div class="s">${m.is_host?'主持人':'人类成员'}</div></div>
+    ${m.is_host?'<span class="flag">主持人</span>':''}
+    ${m.status==='已退出'?'<span class="flag">已退出</span>':''}
+  </div>`;
+}
+async function renderLanding(){
+  const note = document.getElementById('landNote');
+  const [r, m] = await Promise.all([
+    api.get('/rooms/' + landRoomId), api.get(`/rooms/${landRoomId}/members`)
+  ]);
+  if (!r.ok || !r.body){
+    note.innerHTML = '<div class="note err" style="margin-bottom:16px">房间不存在，或链接不完整。请向主持人重新索取地址。</div>';
+    document.getElementById('landJoinCard').hidden = true;
+    return;
+  }
+  const rm = r.body, ms = m.body || [];
+  document.getElementById('landProp').textContent = rm.proposition;
+  document.getElementById('landMeta').textContent =
+    `${rm.status} · ${rm.orchestration_mode} · 房间 ${rm.room_id.slice(-6).toUpperCase()}`;
+  const host = ms.find(x => x.is_host);
+  document.getElementById('landHost').innerHTML = host ? memberRow(host) : '<div class="empty">尚未指定</div>';
+  const ids = rm.agent_ids || [];
+  document.getElementById('landAgentHead').textContent = `智能体阵容 · ${ids.length}`;
+  document.getElementById('landAgents').innerHTML = ids.map(id => {
+    const a = ref.agentMap[id];
+    if (!a) return '';
+    return `<div class="member">
+      <div class="avatar av-agent">${SW.initial(a.name)}</div>
+      <div class="info"><div class="n">${SW.esc(a.name)}</div><div class="s">${SW.esc(a.model_name)} · ${SW.esc(a.kb_names.join(' · ')||'无知识库')}</div></div>
+    </div>`;
+  }).join('') || '<div class="empty">暂无</div>';
+  document.getElementById('landMemberHead').textContent = `已加入的成员 · ${ms.length}`;
+  document.getElementById('landMembers').innerHTML = ms.map(memberRow).join('');
+  document.getElementById('landClaimList').innerHTML = ms.map(x =>
+    `<div class="pick claim" data-claim="${x.member_id}">
+      <span class="avatar ${x.is_host?'av-host':'av-human'}">${SW.initial(x.display_name)}</span>
+      <span class="info"><span class="n">${SW.esc(x.display_name)}</span><span class="s">${x.is_host?'主持人':'人类成员'}</span></span><span class="sel"></span></div>`).join('');
+  document.querySelectorAll('[data-claim]').forEach(p => p.onclick = () => {
+    document.querySelectorAll('[data-claim]').forEach(x => x.classList.remove('on'));
+    p.classList.add('on');
+    landClaimId = p.dataset.claim;
+    document.getElementById('landAdminToken').focus();
+  });
+  const ended = rm.status === '已结束';
+  note.innerHTML = ended
+    ? '<div class="note err" style="margin-bottom:16px">房间已结束，不再接受新成员加入。</div>'
+    : '';
+  // 已结束时认领是本页唯一的动作，故收起昵称表单、直接展开认领块
+  document.getElementById('landJoinForm').hidden = ended;
+  document.getElementById('landClaimHead').hidden = !ended;
+  document.getElementById('landClaimToggle').hidden = ended;
+  document.getElementById('landClaimBody').hidden = !ended;
+}
+async function joinRoom(){
+  const name = document.getElementById('landName').value.trim();
+  if (!name) return SW.toast('请填写昵称','err');
+  const btn = document.getElementById('btnJoin'); btn.disabled = true; btn.textContent = '进入中…';
+  const r = await api.post(`/rooms/${landRoomId}/join`, { display_name: name });
+  btn.disabled = false; btn.textContent = '进入房间';
+  if (!r.ok) return SW.toast(r.error || '进房失败','err');
+  SW.member.enter(landRoomId, r.body.member_id, r.body.token);
+  const id = landRoomId;
+  history.replaceState(null,'',`/room/?id=${id}`);
+  await enterRoom(id);
+}
+async function claimMember(){
+  if (!landClaimId) return SW.toast('先选择要认领的成员','err');
+  const token = document.getElementById('landAdminToken').value.trim();
+  if (!token) return SW.toast('请填写管理令牌','err');
+  const r = await api.post(`/rooms/${landRoomId}/claim`, { member_id: landClaimId, admin_token: token });
+  if (!r.ok) return SW.toast(r.status === 403 ? '管理令牌不正确' : (r.error || '认领失败'),'err');
+  document.getElementById('landAdminToken').value = '';
+  SW.member.enter(landRoomId, r.body.member_id, r.body.token);
+  const id = landRoomId;
+  history.replaceState(null,'',`/room/?id=${id}`);
+  await enterRoom(id);
+}
+
+/* ===================== 房间 ===================== */
+async function enterRoom(id){
+  roomId = id;
+  document.getElementById('landing').hidden = true;
+  document.getElementById('roomView').hidden = false;
+  await loadRef();
+  await refreshRoom();
+  // 次序是有意的：renderComposer 与 renderQueue 都要先知道「我」是谁
+  await refreshMembers();
+  await Promise.all([refreshMessages(), refreshQueue()]);
+  connectWs();
+}
+async function refreshRoom(){
+  const r = await api.get('/rooms/'+roomId);
+  room = r.body;
+  roster = (room.agent_ids||[]).filter(id=>ref.agentMap[id]);
+  floorIds = room.floor_member_ids || [];
+  document.getElementById('propText').textContent = room.proposition;
+  document.getElementById('rmCode').textContent = '房间 ' + room.room_id.slice(-6).toUpperCase();
+  applyStatus();
+}
+function applyStatus(){
+  const st = room.status;
+  const el = document.getElementById('rmStatus');
+  el.className = 'status' + (st==='待开始'?' pending': st==='已结束'?' ended':'');
+  // 徽标只说房间处于哪一态：编排模式在建房时已定且本版只有一种生效值，重复呈现只是噪音；落地页仍完整给出
+  el.innerHTML = `<span class="dot"></span>${SW.esc(st)}`;
+  // 界面门控只是第一层，服务端另有一层；这里不呈现，成员就不会点到一个必被拒的按钮
+  document.getElementById('btnInvite').hidden = !isHost();
+  document.getElementById('btnEnd').hidden = !isHost();
+  if (!canDiscuss()) { closeMention(); closeSkillPop(); }
+  renderComposer();
+  renderBanner();
+  renderMembers();
+  renderQueue();
+}
+
+/* 入门说明的关闭状态记在标签页级，与成员身份同寿命：同机另开标签是另一个人，
+   他仍该看到这条说明，故不记到浏览器级 */
+const FLOOR_HINT_KEY = 'sw.floor_hint_off';
+const floorHintOff = () => sessionStorage.getItem(FLOOR_HINT_KEY) === '1';
+function hideFloorHint(){
+  sessionStorage.setItem(FLOOR_HINT_KEY, '1');
+  document.getElementById('floorHint').hidden = true;
+}
+
+/* 底栏三形态：主持人随时可发；成员持权时可发一条；成员无权时键入的即举手意图。
+   第三种形态让成员不必把同一句话写两遍——先在举手意图里写一遍、放行后再写一遍。 */
+function renderComposer(){
+  const inp = document.getElementById('composerInput');
+  const btn = document.getElementById('btnSend');
+  const hint = document.getElementById('floorHint');
+  if (concluding){
+    // 结论生成期间暂停发言：底栏禁用，等待模态由 WS 事件或触发路径维护
+    inp.disabled = true; btn.disabled = true; btn.textContent = '发送';
+    inp.placeholder = '阶段结论产出生成中，请稍等…';
+    hint.hidden = true;
+    renderMic();
+    return;
+  }
+  if (!canDiscuss() || !me){
+    inp.disabled = true; btn.disabled = true; btn.textContent = '发送';
+    inp.placeholder = me ? '房间不在讨论中' : '尚未取得身份';
+    hint.hidden = true;
+    renderMic();
+    return;
+  }
+  if (isHost()){
+    inp.disabled = false; btn.disabled = false; btn.textContent = '发送';
+    inp.placeholder = '以主持人身份发言，@ 可定向提问智能体或成员，/ 可调用技能…';
+    hint.hidden = true;
+    renderMic();
+    return;
+  }
+  if (hasFloor()){
+    // 举手时写下的那句回填，成员可直接发送或改
+    if (pendingIntent && !inp.value) inp.value = pendingIntent;
+    pendingIntent = '';
+    inp.disabled = false; btn.disabled = false; btn.textContent = '发送';
+    inp.placeholder = '轮到你发言…';
+    hint.hidden = false;
+    hint.textContent = floorReason === 'addressed' ? '主持人向你提问，请回应' : '主持人已放行，请发言';
+    renderMic();
+    return;
+  }
+  const hand = myHand();
+  if (hand){
+    inp.disabled = true; btn.disabled = false; btn.textContent = '撤回举手';
+    inp.placeholder = '';
+    if (inp.value !== (hand.intent || '')) inp.value = hand.intent || '';
+    hint.hidden = false;
+    hint.textContent = '已举手，等主持人放行';
+    renderMic();
+    return;
+  }
+  inp.disabled = false; btn.disabled = false; btn.textContent = '举手发言';
+  inp.placeholder = '写下你想说的那一句，作为举手意图…';
+  if (floorHintOff()){ hint.innerHTML = ''; hint.hidden = true; renderMic(); return; }
+  hint.hidden = false;
+  hint.innerHTML = '<span>举手并经主持人放行后才能发言</span>'
+    + '<button class="hintx" id="btnFloorHintOff" type="button" title="不再显示这条说明" aria-label="不再显示这条说明">×</button>';
+  document.getElementById('btnFloorHintOff').onclick = hideFloorHint;
+  renderMic();
+}
+
+/* ---------- 语音输入（流式） ---------- */
+const asrState = { on:false, busy:false, starting:false, ctx:null, node:null, stream:null,
+                   timer:null, flusher:null, secs:0, base:'', buf:[] };
+function renderMic(){
+  const b = document.getElementById('btnMic');
+  if (!b) return;
+  const inp = document.getElementById('composerInput');
+  // 录音中按钮必须可点（用于停止）；输入框被禁用的其他原因（房间状态）仍要门控按钮。
+  // 不能直接读 inp.disabled：录音期间输入框的禁用正是本函数加上的，会把自己锁死。
+  const baseLocked = !!inp.disabled && !asrState.on && !asrState.busy;
+  b.disabled = asrState.busy || asrState.starting || baseLocked;
+  b.classList.toggle('rec', asrState.on);
+  b.title = asrState.busy ? '转写中…' : (asrState.on ? `录音中 ${asrState.secs} 秒，点击停止` : '语音输入');
+  // 录音与等定稿期间锁输入框：内容只由流式转写事件写入，避免与手动输入互相覆盖
+  inp.disabled = !!inp.disabled || asrState.on || asrState.busy;
+}
+async function toggleMic(){
+  if (asrState.busy || asrState.starting) return;
+  if (asrState.on) { await endMic(); return; }
+  await startMic();
+}
+async function startMic(){
+  if (asrState.on || asrState.starting) return;
+  asrState.starting = true; renderMic();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    });
+  } catch (e) {
+    asrState.starting = false; renderMic();
+    return SW.toast('无法访问麦克风，请检查浏览器权限', 'err');
+  }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) {
+    stream.getTracks().forEach(t=>t.stop());
+    asrState.starting = false; renderMic();
+    return SW.toast('当前浏览器不支持录音，请使用最新版 Chrome/Edge', 'err');
+  }
+  const ctx = new Ctx();
+  try { await ctx.audioWorklet.addModule('/assets/asr-worklet.js'); }
+  catch (e) {
+    stream.getTracks().forEach(t=>t.stop()); ctx.close();
+    asrState.starting = false; renderMic();
+    return SW.toast('当前浏览器不支持录音采样，请使用最新版 Chrome/Edge', 'err');
+  }
+  const src = ctx.createMediaStreamSource(stream);
+  const node = new AudioWorkletNode(ctx, 'asr-pcm');
+  asrState.buf = [];
+  node.port.onmessage = (ev) => { asrState.buf.push(ev.data); };
+  src.connect(node);
+  asrState.ctx = ctx; asrState.node = node; asrState.stream = stream;
+  asrState.on = true; asrState.secs = 0; asrState.starting = false;
+  asrState.base = document.getElementById('composerInput').value;  // 录音前已有内容作为前缀
+  if (!wsSend({ type: 'asr_begin' })){
+    teardownMic();
+    return SW.toast('实时通道未连接，无法语音转写', 'err');
+  }
+  asrState.timer = setInterval(() => {
+    asrState.secs += 1;
+    renderMic();
+    if (asrState.secs >= 60) endMic();  // 单条录音上限 60 秒
+  }, 1000);
+  asrState.flusher = setInterval(flushAsrAudio, 100);  // 每 ~100ms 推一帧
+  renderMic();
+}
+function flushAsrAudio(){
+  if (!asrState.buf.length) return;
+  const total = asrState.buf.reduce((n,c)=>n+c.byteLength, 0);
+  const merged = new Uint8Array(total);
+  let off = 0;
+  for (const c of asrState.buf) { merged.set(new Uint8Array(c), off); off += c.byteLength; }
+  asrState.buf = [];
+  wsSend({ type: 'asr_audio', data: b64FromBytes(merged) });
+}
+function b64FromBytes(bytes){
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+function teardownMic(){
+  clearInterval(asrState.timer); clearInterval(asrState.flusher);
+  asrState.timer = null; asrState.flusher = null;
+  try { asrState.node.port.close(); asrState.node.disconnect(); } catch (e) {}
+  asrState.stream.getTracks().forEach(t=>t.stop());
+  try { asrState.ctx.close(); } catch (e) {}
+  asrState.on = false; asrState.secs = 0; asrState.buf = [];
+}
+async function endMic(){
+  if (!asrState.on) return;
+  flushAsrAudio();
+  teardownMic();
+  asrState.busy = true; renderMic();
+  if (!wsSend({ type: 'asr_end' })){
+    asrState.busy = false; asrState.base = '';
+    renderComposer();
+    return SW.toast('实时通道已断开，语音转写未完成', 'err');
+  }
+  // asr_done / asr_error 事件里复位；另设 15 秒看门狗，通道异常也不至于停在「转写中」
+  asrState.watchdog = setTimeout(() => {
+    if (asrState.busy){
+      asrState.busy = false; asrState.base = '';
+      renderComposer();
+      SW.toast('语音转写未返回结果，请重试', 'err');
+    }
+  }, 15000);
+}
+function onAsrText(d){
+  if (!asrState.on && !asrState.busy) return;
+  const inp = document.getElementById('composerInput');
+  const text = String(d.text || '');
+  inp.value = (asrState.base ? asrState.base + ' ' : '') + text;
+}
+function onAsrDone(d){
+  clearTimeout(asrState.watchdog);
+  asrState.busy = false;
+  const inp = document.getElementById('composerInput');
+  const text = String(d.text || '').trim();
+  if (text) inp.value = (asrState.base ? asrState.base + ' ' : '') + text;
+  asrState.base = '';
+  renderComposer();
+  inp.focus();
+  renderMention();
+}
+function onAsrError(d){
+  clearTimeout(asrState.watchdog);
+  asrState.busy = false; asrState.base = '';
+  renderComposer();
+  SW.toast(d.message || '语音转写失败', 'err');
+}
+function renderBanner(){
+  const stream = document.getElementById('stream');
+  let b = document.getElementById('roomBanner');
+  if (room.status === '待开始'){
+    if(!b){ b=document.createElement('div'); b.id='roomBanner'; b.className='banner pending'; stream.prepend(b); }
+    b.innerHTML = isHost()
+      ? `<span>房间待开始。开始后进入讨论，可 @ 提问、放行举手与生成结论。</span><button class="btn sm primary" id="btnStart">开始讨论</button>`
+      : `<span>房间待开始，等主持人开始讨论。开始之后你可以举手，经放行即可发言。</span>`;
+    const s=document.getElementById('btnStart'); if(s) s.onclick = async ()=>{ await api.post(`/rooms/${roomId}/start`); await refreshRoom(); await refreshMessages(); };
+  } else if (room.status === '已结束'){
+    if(!b){ b=document.createElement('div'); b.id='roomBanner'; b.className='banner ended'; stream.prepend(b); }
+    b.textContent = '房间已结束，消息与举手队列只读；仍可在「阶段结论」中下载既有产出。';
+  } else if (b){ b.remove(); }
+}
+async function refreshMembers(){
+  const r = await api.get(`/rooms/${roomId}/members`);
+  members = r.body||[];
+  const mine = api.getMemberId();
+  const found = members.find(m => m.member_id === mine);
+  if (mine && !found){
+    // 身份已不在成员名单里（库被重建或手工改过）：回落地页重新进房，
+    // 别留在一个发不出话又看不出原因的界面
+    const id = roomId;
+    SW.member.drop(id); api.clearMember();
+    SW.toast('身份已失效，请重新填写昵称进房','err');
+    return showLanding(id);
+  }
+  me = found || null;
+  // 身份在这里才落定，故整块状态重画：顶栏门控、底栏形态与举手栏都取决于「我是不是主持人」
+  applyStatus();
+}
+function hostName(){ const h = members.find(m=>m.is_host); return h? h.display_name : '主持人'; }
+function renderMembers(){
+  const pane = document.getElementById('pane-members');
+  const canPickHost = isHost() && canDiscuss();
+  const mine = me ? me.member_id : null;
+  const humans = members.map(m=>{
+    const waiting = floorIds.indexOf(m.member_id) >= 0;
+    const left = m.status === '已退出';
+    return `
+    <div class="member">
+      <div class="avatar ${m.is_host?'av-host':'av-human'}">${SW.initial(m.display_name)}</div>
+      <div class="info"><div class="n">${SW.esc(m.display_name)}${m.member_id===mine?'（我）':''}</div><div class="s">${m.is_host?'主持人':'人类成员'}</div></div>
+      ${waiting?'<span class="flag">待发言</span>':''}
+      ${left?'<span class="flag">已退出</span>':''}
+      ${m.is_host?'<span class="flag">主持人</span>':(canPickHost && !left?`<button class="mini" data-host="${m.member_id}">设为主持</button>`:'')}
+    </div>`;}).join('');
+  const agents = roster.map(id=>{ const a=ref.agentMap[id]; return `
+    <div class="member">
+      <div class="avatar av-agent">${SW.initial(a.name)}</div>
+      <div class="info"><div class="n">${SW.esc(a.name)}</div><div class="s">${SW.esc(a.model_name)} · ${SW.esc(a.kb_names.join(' · ')||'无知识库')}</div></div>
+    </div>`; }).join('');
+  pane.innerHTML =
+    `<div class="sect">人类成员 · ${members.length}</div>${humans||'<div class="empty">暂无</div>'}` +
+    `<div class="sect" style="margin-top:16px">智能体 · ${roster.length}</div>${agents||'<div class="empty">暂无</div>'}`;
+  pane.querySelectorAll('[data-host]').forEach(b=>b.onclick=async()=>{ const r=await api.post(`/rooms/${roomId}/host`,{member_id:b.dataset.host}); if(SW.report(r,'已指定主持人')) await refreshMembers(); });
+  document.getElementById('cntMembers').textContent = members.length + roster.length;
+}
+async function refreshMessages(){
+  const r = await api.get(`/rooms/${roomId}/messages`);
+  const msgs = r.body||[];
+  renderMessages(msgs);
+}
+function provTag(m){
+  // 模型名与所引知识库不在消息头重复呈现：它们属于配置事实，阵容与落地页已完整给出；
+  // 检索无命中这一条仍要可见，否则「这条发言没有依据任何知识库」就无从分辨
+  if (m.source_type === '人类') return '';
+  return (m.no_kb_citation || !(m.cited_kb_ids||[]).length) ? '<span class="prov none">无知识库引用</span>' : '';
+}
+function renderMessages(msgs){
+  const stream = document.getElementById('stream');
+  const banner = document.getElementById('roomBanner');
+  let html = '<div class="daymark">火花会 · 讨论记录</div>';
+  if (!msgs.length && !live && !busy && !floorIds.length){
+    html += `<div class="empty">${isHost()
+      ? '尚无发言。以主持人身份发送消息，@ 可请智能体发言。'
+      : '尚无发言。在下方输入框写下想说的那一句，点「举手发言」。'}</div>`;
+  }
+  msgs.forEach(m=>{
+    const isAgent = m.source_type === '智能体';
+    const a = ref.agentMap[m.source_id];
+    const fromHost = !isAgent && (m.source_id === (room ? room.host_member_id : null) || m.source_id === 'host');
+    const member = !isAgent ? members.find(x=>x.member_id===m.source_id) : null;
+    // 归属按 source_id 查成员名单；fromHost 只作回落——实施前的历史消息带字面值 "host"
+    const name = isAgent ? (a?a.name:m.source_id) : (member ? member.display_name : (fromHost ? hostName() : '人类成员'));
+    const avCls = isAgent ? 'av-agent' : (fromHost ? 'av-host' : (member ? 'av-human' : 'av-human'));
+    const role = isAgent ? '智能体' : (fromHost ? '主持人 · 人类' : (member && member.is_host ? '主持人 · 人类' : '人类成员'));
+    const hostTag = (fromHost || (!isAgent && member && member.is_host)) ? '<span class="tag tag-host">主持人</span>' : '';
+    // 智能体在前、成员在后，各组内按书写次序：智能体列决定串行应答次序，成员列不决定
+    const targets = (!isAgent && ((m.addressee_agent_ids||[]).length || (m.addressee_member_ids||[]).length))
+      ? (m.addressee_agent_ids||[]).map(id=>(ref.agentMap[id]||{name:id}).name)
+          .concat((m.addressee_member_ids||[]).map(id=>memberName(id)))
+          .join('、')
+      : '';
+    const toTag = targets ? `<span class="tag tag-to">→ ${SW.esc(targets)}</span>` : '';
+    // 静态文案，不含用户数据
+    const cutTag = m.truncated ? '<span class="tag tag-cut">篇幅所限，未展开</span>' : '';
+    const body = bodyHtml(m.content);
+    html += `<div class="msg">
+      <div class="avatar ${avCls}">${SW.initial(name)}</div>
+      <div class="body">
+        <div class="meta"><span class="name">${SW.esc(name)}</span><span class="role">${role}</span>${hostTag}${toTag}${cutTag}${provTag(m)}<span class="time">${fmtClock(m.created_at)}</span></div>
+        <div class="text${body.cls}">${body.html}</div>
+      </div>
+    </div>`;
+  });
+  html += waitingLines();
+  if (live) html += liveHtml();
+  else if (busy) html += `<div class="typing"><div class="avatar">${SW.initial('…')}</div><div>智能体正在结合知识库生成发言 <span class="dots"><span></span><span></span><span></span></span></div></div>`;
+  stream.innerHTML = html;
+  if (banner) stream.prepend(banner);
+  scrollStream();
+}
+/* 持发言权而未开口的人类成员：这一轮在等人而不是等机器，故不带打字动画；
+   名单由发言权派生，成员开口、房间结束或发言权清空即随之消失 */
+function waitingLines(){
+  const mine = me ? me.member_id : null;
+  return floorIds.filter(id=>id!==mine).map(id=>{
+    const m = members.find(x=>x.member_id===id);
+    const name = m ? m.display_name : memberName(id);
+    const avCls = m && m.is_host ? 'av-host' : 'av-human';
+    return `<div class="typing"><div class="avatar ${avCls}">${SW.initial(name)}</div><div>已放行 ${SW.esc(name)} 发言，等待其组织语言</div></div>`;
+  }).join('');
+}
+async function refreshQueue(){
+  const r = await api.get(`/rooms/${roomId}/raise-hand`);
+  queue = r.body||[];
+  renderQueue();
+  renderComposer();
+}
+function renderQueue(){
+  const pane = document.getElementById('pane-hands');
+  document.getElementById('cntHands').textContent = queue.length;
+  // 标亮只在「主持人、队列非空、没在看举手栏」三者同时成立时：切页签、清空或移交主持都会经这里重算
+  const handsTab = document.querySelector('.tab[data-tab="hands"]');
+  if (handsTab) handsTab.classList.toggle('alert', isHost() && queue.length > 0 && document.getElementById('pane-hands').hidden);
+  const dis = !canDiscuss();
+  const host = isHost();
+  // 模拟举手是主持人代填智能体举手的演示入口，故对成员隐藏；选项未取到时按显示处理
+  const showSim = host && !(ref.ui && ref.ui.show_raise_sim === false);
+  let html = showSim
+    ? `<div class="pane-act"><button class="btn sm" id="btnRaiseSim" ${dis?'disabled':''}>模拟举手</button></div>`
+    : '';
+  if (!queue.length){
+    html += `<div class="empty">暂无举手。${showSim?'可用本栏「模拟举手」演示插嘴流程。':''}</div>`;
+  } else {
+    // 两类主体混排在同一条队列里：主持人面对的就该是一条按到达顺序排列的待发言队列
+    html += '<div class="sect">待发言队列 · 按到达顺序 · 随讨论刷新</div>'
+      + queue.map(q=>handItem(q, dis, host)).join('');
+  }
+  if (!host && me){
+    // 成员没有放行与驳回按钮，但必须看得见自己在不在队列里
+    const mine = myHand();
+    html += '<div class="sect" style="margin-top:16px">我的举手</div>' + (mine
+      ? `<div class="hand-item"><div class="intent">${SW.esc(mine.intent||'（未填写意图）')}</div>
+         <div class="hand-actions"><button class="btn-deny" id="btnWithdraw" ${dis?'disabled':''}>撤回举手</button></div></div>`
+      : '<div class="empty">你还没有举手。在下方输入框写下想说的那一句，点「举手发言」。</div>');
+  }
+  pane.innerHTML = html;
+  const simBtn = document.getElementById('btnRaiseSim');
+  if (simBtn) simBtn.onclick = openRaise;
+  const wd = document.getElementById('btnWithdraw');
+  if (wd) wd.onclick = ()=>{ const h = myHand(); if (h) withdrawHand(h.raise_id); };
+  pane.querySelectorAll('[data-rel]').forEach(b=>b.onclick=()=>release(b.dataset.rel));
+  pane.querySelectorAll('[data-dis]').forEach(b=>b.onclick=()=>dismiss(b.dataset.dis));
+}
+function handItem(q, dis, host){
+  const isMember = !!q.member_id;
+  const a = ref.agentMap[q.agent_id] || {};
+  const m = isMember ? (members.find(x=>x.member_id===q.member_id)||{}) : null;
+  const name = isMember ? memberName(q.member_id) : (a.name || q.agent_id);
+  const sub = isMember ? (m.is_host ? '主持人 · 人类' : '人类成员') : (a.model_name || '');
+  const avCls = isMember ? (m.is_host ? 'av-host' : 'av-human') : 'av-agent';
+  // 举手来源要让主持人分辨每一条是谁提出的：机器判定的、他自己代填的、成员自己举的
+  const src = q.source === 'auto' ? '<span class="tag tag-src">自主</span>'
+    : q.source === 'member' ? '<span class="tag tag-src">成员</span>' : '';
+  const actions = host
+    ? `<div class="hand-actions">
+        <button class="btn-allow" data-rel="${q.raise_id}" ${dis?'disabled':''}>放行发言</button>
+        <button class="btn-deny" data-dis="${q.raise_id}" ${dis?'disabled':''}>驳回</button>
+      </div>`
+    : '';
+  return `<div class="hand-item">
+    <div class="top"><div class="avatar ${avCls}">${SW.initial(name)}</div><div><div class="n">${SW.esc(name)}${src}</div><div class="s">${SW.esc(sub)}</div></div></div>
+    <div class="intent">${SW.esc(q.intent||'（未填写意图）')}</div>
+    ${actions}
+  </div>`;
+}
+
+/* ---------- 流式发言：WS 与 SSE 共用同一套渲染 ---------- */
+function scrollStream(){ const st=document.getElementById('stream'); st.scrollTop = st.scrollHeight; }
+function liveHtml(){
+  const a = ref.agentMap[live.agentId] || {name:live.agentId};
+  return `<div class="msg live" id="liveMsg">
+    <div class="avatar av-agent">${SW.initial(a.name)}</div>
+    <div class="body">
+      <div class="meta"><span class="name">${SW.esc(a.name)}</span><span class="role">智能体</span><span class="stage">${SW.esc(live.stage)}</span><span class="dots"><span></span><span></span><span></span></span></div>
+      <details class="thought" id="liveThought" hidden><summary>思考过程</summary><div class="thought-text" id="liveThoughtText"></div></details>
+      <div class="text" id="liveText">${SW.esc(live.text)}</div>
+    </div>
+  </div>`;
+}
+function beginLive(streamId, agentId){
+  if (live && live.streamId === streamId) return;
+  live = { streamId, agentId, stage:'', text:'', thought:'' };
+  const stream = document.getElementById('stream');
+  const old = document.getElementById('liveMsg'); if (old) old.remove();
+  const empty = stream.querySelector('.empty'); if (empty) empty.remove();
+  stream.insertAdjacentHTML('beforeend', liveHtml());
+  scrollStream();
+}
+function paintLive(){
+  // 以 textContent 整体重绘：增量永不进入 innerHTML
+  const t = document.getElementById('liveText');
+  if (t) t.textContent = live.text;
+  const s = document.querySelector('#liveMsg .stage');
+  if (s) s.textContent = live.stage;
+  // 补节点而非整体重绘，<details> 的展开状态才不会在每个增量后被重置；
+  // 不加 open：默认折叠，思考是过程信息，正文才是讨论记录
+  const th = document.getElementById('liveThought');
+  if (th){
+    if (live.thought) th.hidden = false;
+    const tt = document.getElementById('liveThoughtText');
+    if (tt) tt.textContent = live.thought;
+  }
+  scrollStream();
+}
+function onStage(d){ busy = true; beginLive(d.stream_id, d.agent_id); live.stage = (d.stage||'')+'…'; paintLive(); }
+function onThought(d){ busy = true; beginLive(d.stream_id, d.agent_id); live.thought += d.delta||''; paintLive(); }
+function onDelta(d){ busy = true; beginLive(d.stream_id, d.agent_id); live.text += d.delta||''; paintLive(); }
+function onFinal(){ live = null; busy = false; lastDirectedNames = []; refreshMessages(); }
+function onSpeechFailed(detail){
+  live = null; busy = false;
+  const text = lastDirectedNames.length
+    ? `问题已发出，${detail||'模型异常'}`
+    : `发言失败：${detail||'模型异常'}，可重新 @ 提问`;
+  lastDirectedNames = [];
+  SW.toast(text,'err');
+  refreshMessages();
+}
+
+/* ---------- WS ---------- */
+function connectWs(){
+  try{
+    const proto = location.protocol==='https:'?'wss':'ws';
+    ws = new WebSocket(`${proto}://${location.host}/rooms/${roomId}/ws${api.memberQs()}`);
+    ws.onopen = ()=>{
+      wsRetry = 0;
+      // 重连成功才整块重取：首次连接由 enterRoom 自己取齐，重复取只会多一轮请求
+      if (wsReconnect){ wsReconnect = false; void resyncAfterReconnect(); }
+    };
+    ws.onmessage = (ev)=>{ let d; try{d=JSON.parse(ev.data);}catch(_){return;} handleWs(d); };
+    ws.onerror = ()=>{};
+    ws.onclose = (ev)=>{
+      // 通道断开即终止语音流：服务端会话随连接销毁，录音侧不再有意义
+      if (asrState.on || asrState.busy){
+        clearTimeout(asrState.watchdog);
+        teardownMic();
+        asrState.busy = false; asrState.base = '';
+        renderComposer();
+        SW.toast('实时通道已断开，语音转写中止', 'err');
+      }
+      // 1008 是握手期的身份拒绝：清掉本地凭据回落地页，重连只会再被拒一次
+      if (ev && ev.code === 1008 && roomId){
+        const id = roomId;
+        SW.member.drop(id); api.clearMember();
+        SW.toast('身份已失效，请重新填写昵称进房','err');
+        showLanding(id);
+        return;
+      }
+      // 其余关闭（服务重启、网络抖动）退避重连：断线期间的推送不会补发，
+      // 不重连界面就会停在旧状态等一次手工刷新——主持权移交正是这样被漏掉的
+      if (!roomId) return;
+      wsReconnect = true;
+      wsRetry = Math.min(wsRetry + 1, 5);
+      setTimeout(()=>{ if (roomId) connectWs(); }, wsRetry * 1000);
+    };
+  }catch(_){ ws=null; }
+}
+async function resyncAfterReconnect(){
+  if (!roomId) return;
+  await refreshRoom();
+  await refreshMembers();
+  await refreshQueue();
+  await refreshMessages();
+}
+function handleWs(d){
+  if (d.type==='stage') onStage(d);
+  else if (d.type==='thought_delta') onThought(d);
+  else if (d.type==='message_delta') onDelta(d);
+  else if (d.type==='message'){
+    if (d.stream_id) onFinal();
+    // 非流式的即人类消息：发言权可能刚被这一条消耗掉，须先重取房间再重画消息，
+    // 否则等待行读到的还是旧发言权名单
+    else { busy=false; (async()=>{ await refreshRoom(); refreshMessages(); })(); }
+  }
+  else if (d.type==='raise_hand'){ refreshQueue(); }
+  else if (d.type==='raise_hand_update'){ refreshQueue(); refreshMessages(); }
+  else if (d.type==='conclusion_started'){
+    // 主持人触发了阶段结论：全房间进入生成中——等待模态盖住界面，底栏禁用，发言暂停
+    concluding = true;
+    closeMention(); closeSkillPop();
+    renderComposer();
+    SW.openModal('mConcluding');
+  }
+  else if (d.type==='conclusion_done'){
+    concluding = false;
+    SW.closeModal('mConcluding');
+    renderComposer();
+    // 生成成功即全员打开产出模态；失败由触发者的请求结果弹错误提示
+    if (d.ok) void openOutputs();
+  }
+  else if (d.type==='floor_update'){
+    floorIds = d.member_ids || [];
+    const mine = (d.granted||[]).find(g => me && g.member_id === me.member_id);
+    if (mine) floorReason = mine.reason || 'released';
+    applyStatus();
+    refreshMessages();
+  }
+  else if (d.type==='member_update'){ refreshMembers(); }
+  else if (d.type==='speech_failed') onSpeechFailed(d.detail);
+  else if (d.type==='rejected'){
+    lastDirectedNames = [];
+    // 放行的举手可能已被撤回：此时不会有任何流式事件到来，须自行收掉乐观占位
+    if (!live){ busy = false; refreshMessages(); }
+    SW.toast(d.detail||'操作被拒','err');
+  }
+  else if (d.type==='room_state' && d.room){ room=d.room; floorIds = d.room.floor_member_ids || floorIds; applyStatus(); }
+  else if (d.type==='asr_text') onAsrText(d);
+  else if (d.type==='asr_done') onAsrDone(d);
+  else if (d.type==='asr_error') onAsrError(d);
+}
+function wsSend(obj){ if (ws && ws.readyState===1){ ws.send(JSON.stringify(obj)); return true; } return false; }
+function setBusy(v){ busy=v; refreshMessages(); }
+
+/* ---------- SSE 降级通道：WS 不可用时逐段读取 ---------- */
+function parseSse(block){
+  let name=null, data=null;
+  block.split('\n').forEach(line=>{
+    if (line.startsWith('event: ')) name = line.slice(7).trim();
+    else if (line.startsWith('data: ')) { try{ data = JSON.parse(line.slice(6)); }catch(_){} }
+  });
+  return (name && data) ? {name, data} : null;
+}
+async function streamSpeak(agentId, intent, directedFrom){
+  busy = true; refreshMessages();
+  let res;
+  try{
+    res = await fetch(`/rooms/${roomId}/speak-stream`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ agent_id:agentId, intent:intent||null, directed_from:directedFrom||null })
+    });
+  }catch(_){ res = null; }
+  if (!res || !res.ok){
+    let detail = '网络异常';
+    if (res){ try{ detail = (await res.json()).detail || detail; }catch(_){} }
+    return onSpeechFailed(detail);
+  }
+  let settled = false;
+  const handle = (block)=>{
+    const evt = parseSse(block); if (!evt) return;
+    if (evt.name==='stage') onStage(evt.data);
+    else if (evt.name==='thought') onThought(evt.data);
+    else if (evt.name==='delta') onDelta(evt.data);
+    else if (evt.name==='message'){ settled = true; onFinal(); }
+    else if (evt.name==='error'){ settled = true; onSpeechFailed(evt.data.detail); }
+  };
+  if (res.body){
+    const reader = res.body.getReader(), decoder = new TextDecoder('utf-8');
+    let buf = '';
+    for(;;){
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      buf += decoder.decode(chunk.value, {stream:true});
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0){ handle(buf.slice(0,i)); buf = buf.slice(i+2); }
+    }
+    if (buf.trim()) handle(buf);
+  } else {
+    (await res.text()).split('\n\n').forEach(handle);
+  }
+  if (!settled){ live = null; busy = false; refreshMessages(); }
+}
+
+/* ---------- @ 提及：人类定向提问 ---------- */
+let mentionIdx = 0, mentionList = [];
+
+function mentionFragment(){
+  const inp = document.getElementById('composerInput');
+  const m = /@([^\s@]*)$/.exec(inp.value.slice(0, inp.selectionStart));
+  return m ? m[1] : null;
+}
+function mentionTargets(){
+  // 阵容内智能体 + 房内人类成员（除自己）：两类都可能被 @，但只有主持人的 @ 触发动作
+  const agents = roster.filter(id=>ref.agentMap[id] && ref.agentMap[id].name)
+    .map(id=>({kind:'agent', id, name:ref.agentMap[id].name}));
+  const mine = me ? me.member_id : null;
+  const people = members.filter(m=>m.member_id !== mine && m.display_name)
+    .map(m=>({kind:'member', id:m.member_id, name:m.display_name}));
+  return agents.concat(people);
+}
+function mentionCandidates(fragment){
+  const frag = String(fragment||'').toLowerCase();
+  return mentionTargets().filter(t=>t.name.toLowerCase().indexOf(frag) === 0);
+}
+function parseAddressees(text){
+  // 取正文里全部 @名字：须与阵容内智能体名或房内成员名精确匹配且后接空白或行尾。结果按
+  // 出现位置排序、同起点取最长匹配、按对象去重，故「@甲 @乙」得到两条依次应答的目标。
+  const s = String(text||'');
+  const hits = [];
+  mentionTargets().forEach(t=>{
+    let from = 0, at;
+    while ((at = s.indexOf('@'+t.name, from)) >= 0){
+      const after = s[at+1+t.name.length];
+      if (after === undefined || /\s/.test(after)) hits.push({at, kind:t.kind, id:t.id, name:t.name});
+      from = at + 1;
+    }
+  });
+  hits.sort((x,y)=> x.at - y.at || y.name.length - x.name.length);
+  const out = [], covered = [];
+  hits.forEach(h=>{
+    const end = h.at + 1 + h.name.length;
+    // 起点落在已接受的更长匹配之内则丢弃：处理「架构」与「架构师」这类子串名
+    if (covered.some(([s0,e0])=> h.at < e0 && s0 < end)) return;
+    covered.push([h.at, end]);
+    out.push({kind:h.kind, id:h.id, name:h.name});
+  });
+  return out;
+}
+function closeMention(){
+  document.getElementById('mentionPop').hidden = true;
+  mentionList = []; mentionIdx = 0;
+}
+function renderMention(){
+  const pop = document.getElementById('mentionPop');
+  const frag = mentionFragment();
+  if (frag === null || !canDiscuss()){ closeMention(); return; }
+  mentionList = mentionCandidates(frag);
+  if (!mentionList.length){ closeMention(); return; }
+  if (mentionIdx >= mentionList.length) mentionIdx = 0;
+  pop.innerHTML = '<div class="hint">定向提问 · 回车补全，补全后再回车发送</div>'
+    + mentionList.map((t,i)=>pickRow(t, i===mentionIdx)).join('');
+  pop.hidden = false;
+  pop.querySelectorAll('[data-pick]').forEach((p,i)=>{
+    p.onmouseenter = ()=>{ mentionIdx=i; pop.querySelectorAll('[data-pick]').forEach((x,j)=>x.classList.toggle('on', j===i)); };
+    p.onclick = ()=>completeMention(mentionList[i]);
+  });
+}
+function completeMention(target){
+  const inp = document.getElementById('composerInput');
+  const upto = inp.value.slice(0, inp.selectionStart);
+  const rest = inp.value.slice(inp.selectionStart);
+  const at = upto.lastIndexOf('@');
+  inp.value = upto.slice(0, at) + '@' + target.name + ' ' + rest;
+  const caret = at + 2 + target.name.length;
+  inp.setSelectionRange(caret, caret);
+  closeMention();
+  inp.focus();
+}
+function sendComposer(){
+  const inp = document.getElementById('composerInput');
+  const text = inp.value;
+  if (!canDiscuss() || !me) return;
+  if (isHost() || hasFloor()){
+    if (!text.trim()) return;
+    inp.value = '';
+    pendingIntent = '';
+    closeMention(); closeSkillPop();
+    doHuman(text);
+    return;
+  }
+  const hand = myHand();
+  if (hand){ withdrawHand(hand.raise_id); return; }
+  if (!text.trim()) return SW.toast('先写下你想说的那一句，它会作为举手意图','err');
+  closeMention(); closeSkillPop();
+  raiseSelf(text.trim());
+}
+function onComposerKeydown(e){
+  const skillOpen = !document.getElementById('skillPop').hidden && skillList.length;
+  if (skillOpen){
+    // 技能层可见时回车为执行而非发送：与 @ 层「回车补全」同一习惯，但技能不留回正文
+    if (e.key==='ArrowDown'){ e.preventDefault(); skillIdx=(skillIdx+1)%skillList.length; renderSkillPop(); return; }
+    if (e.key==='ArrowUp'){ e.preventDefault(); skillIdx=(skillIdx+skillList.length-1)%skillList.length; renderSkillPop(); return; }
+    if (e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); pickSkill(skillIdx); return; }
+    if (e.key==='Escape'){ e.preventDefault(); closeSkillPop(); return; }
+  }
+  const open = !document.getElementById('mentionPop').hidden && mentionList.length;
+  if (open){
+    if (e.key === 'ArrowDown'){ e.preventDefault(); mentionIdx = (mentionIdx+1) % mentionList.length; renderMention(); return; }
+    if (e.key === 'ArrowUp'){ e.preventDefault(); mentionIdx = (mentionIdx-1+mentionList.length) % mentionList.length; renderMention(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); completeMention(mentionList[mentionIdx]); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); closeMention(); return; }
+  }
+  if (e.key === 'Enter'){ e.preventDefault(); sendComposer(); }
+}
+
+/* ---------- 讨论动作（优先 WS，回退 SSE／REST） ---------- */
+async function doHuman(content){
+  if (!canDiscuss() || !content.trim()) return;
+  const targets = parseAddressees(content);
+  const agentIds = targets.filter(t=>t.kind==='agent').map(t=>t.id);
+  const memberIds = targets.filter(t=>t.kind==='member').map(t=>t.id);
+  // 只比较 @ 记号数与命中数：从原文反切未匹配的名字会误报（如「@架构师，你怎么看」）
+  const atCount = (String(content).match(/@[^\s@]+/g) || []).length;
+  if (atCount > targets.length){
+    SW.toast(targets.length
+      ? '部分 @ 未匹配到阵容内的智能体或房内成员，仅匹配到的对象会被标注'
+      : '未匹配到阵容内的智能体或房内成员，已作为群发消息发送');
+  }
+  if (wsSend({type:'human_message', content, addressee_agent_ids: agentIds, addressee_member_ids: memberIds})){
+    lastDirectedNames = targets.filter(t=>t.kind==='agent').map(t=>t.name);
+    await refreshMessages();
+    return;
+  }
+  const r = await api.post(`/rooms/${roomId}/messages`, { content, addressee_agent_ids: agentIds, addressee_member_ids: memberIds });
+  if (!r.ok){ SW.report(r); return; }
+  // 广播只到得成有实时通道的客户端，走这里的人恰恰没有，故自己的发言权消耗靠重取房间拿到；
+  // 先房间后消息，等待行才不会读到旧发言权名单
+  await refreshRoom();
+  await refreshMessages();
+  // 成员的 @ 只作标注：触发智能体应答要经主持人放行，降级通道上也不得绕过
+  if (!isHost()) return;
+  const anchor = r.body ? r.body.message_id : null;
+  for (const t of targets.filter(x=>x.kind==='agent')){
+    lastDirectedNames = [t.name];
+    await streamSpeak(t.id, content, anchor);
+  }
+}
+async function doRaise(agentId, intent){
+  if (!canDiscuss()) return;
+  if (wsSend({type:'raise_hand', agent_id:agentId, intent:intent||undefined})) { await refreshQueue(); return; }
+  const r = await api.post(`/rooms/${roomId}/raise-hand`, { agent_id:agentId, intent:intent||null });
+  SW.report(r); await refreshQueue();
+}
+async function raiseSelf(intent){
+  if (!canDiscuss()) return;
+  pendingIntent = intent;
+  if (wsSend({type:'raise_self', intent})) { await refreshQueue(); return; }
+  const r = await api.post(`/rooms/${roomId}/raise-hand/self`, { intent });
+  SW.report(r); await refreshQueue();
+}
+async function withdrawHand(raiseId){
+  if (wsSend({type:'withdraw_hand', raise_id:raiseId})) { await refreshQueue(); return; }
+  await api.post(`/rooms/${roomId}/raise-hand/${raiseId}/withdraw`);
+  await refreshQueue();
+}
+async function release(raiseId){
+  if (!canDiscuss()) return;
+  // 占位只属于智能体生成：放行成员只授予发言权，服务端不会有任何流式事件到来
+  const item = queue.find(q=>q.raise_id===raiseId);
+  const optimistic = !!(item && !item.member_id);
+  if (optimistic) setBusy(true);
+  if (wsSend({type:'release', raise_id:raiseId})) { await refreshQueue(); return; }
+  const r = await api.post(`/rooms/${roomId}/raise-hand/${raiseId}/release`);
+  if (optimistic) setBusy(false);
+  if (!r.ok) SW.toast(r.error||'放行失败','err');
+  // 降级通道没有推送：发言权与名单标记只在重取房间时更新
+  await Promise.all([refreshQueue(), refreshMessages(), refreshRoom()]);
+}
+async function dismiss(raiseId){
+  if (!canDiscuss()) return;
+  if (wsSend({type:'dismiss', raise_id:raiseId})) { await refreshQueue(); return; }
+  await api.post(`/rooms/${roomId}/raise-hand/${raiseId}/dismiss`);
+  await refreshQueue();
+}
+async function endRoom(){
+  if (!confirm('确认结束房间？结束后不再新增发言，记忆与产出保留。')) return;
+  const r = await api.post(`/rooms/${roomId}/end`);
+  if (SW.report(r,'房间已结束')) { await refreshRoom(); await refreshQueue(); }
+}
+
+/* ---------- 退出聊天室 ---------- */
+let leaveTarget = null;
+function exitToHome(){
+  // 先清身份再跳转：此后直接打开 /room/?id=xxx 会落到进房落地页而非自动进房；
+  // 服务端把 / 重定向到首页 /app，即不带 room 参数的现状首页
+  if (roomId) SW.member.drop(roomId);
+  api.clearMember();
+  location.href = '/';
+}
+async function leaveRoom(){
+  if (!me) return exitToHome();
+  const others = members.filter(m => m.member_id !== me.member_id && m.status !== '已退出');
+  if (isHost() && others.length){
+    // 主持人退出前须指定另一位在线人类成员接任主持
+    leaveTarget = others[0].member_id;
+    const list = document.getElementById('leaveList');
+    list.innerHTML = others.map((m,i)=>pickRow({kind:'member', id:m.member_id, name:m.display_name}, i===0)).join('');
+    wirePick(list, v=>{ leaveTarget = v; document.getElementById('btnLeaveConfirm').disabled = !v; });
+    document.getElementById('btnLeaveConfirm').disabled = !leaveTarget;
+    SW.openModal('mLeave');
+    return;
+  }
+  if (isHost()){
+    // 唯一人类成员：退出即结束会议，须确认；房间未结束先结束再退出
+    if (!confirm('你是房间唯一成员，退出即结束会议。确认退出？')) return;
+    if (room.status !== '已结束'){
+      const r = await api.post(`/rooms/${roomId}/end`);
+      if (!r.ok) return SW.report(r);
+    }
+  } else {
+    if (!confirm('退出聊天室？可经邀请链接重新进入。')) return;
+  }
+  // 服务端标记已退出并清令牌；失败则留在房间
+  const r = await api.post(`/rooms/${roomId}/leave`);
+  if (!r.ok) return SW.report(r);
+  exitToHome();
+}
+async function confirmLeaveHost(){
+  if (!leaveTarget) return;
+  const h = await api.post(`/rooms/${roomId}/host`, { member_id: leaveTarget });
+  if (!h.ok) return SW.report(h);
+  const r = await api.post(`/rooms/${roomId}/leave`);
+  if (!r.ok) return SW.report(r);
+  exitToHome();
+}
+
+/* ---------- 选择行与举手模态 ---------- */
+function pickRow(t, on){
+  const isMember = t.kind === 'member';
+  const mm = isMember ? (members.find(x=>x.member_id===t.id)||{}) : {};
+  const sub = isMember
+    ? ((mm.is_host ? '主持人 · 人类' : '人类成员') + (mm.status==='已退出' ? ' · 已退出' : ''))
+    : summarize(t.id);
+  return `<div class="pick ${on?'on':''}" data-pick="${t.id}" data-kind="${t.kind}">
+    <span class="avatar ${isMember?'av-human':'av-agent'}">${SW.initial(t.name)}</span>
+    <span class="info"><span class="n">${SW.esc(t.name)}</span><span class="s">${SW.esc(sub)}</span></span><span class="sel"></span></div>`;
+}
+function wirePick(container, cb){
+  container.querySelectorAll('[data-pick]').forEach(p=>p.onclick=()=>{
+    container.querySelectorAll('[data-pick]').forEach(x=>x.classList.remove('on'));
+    p.classList.add('on'); cb(p.dataset.pick);
+  });
+}
+async function openRaise(){
+  if (!canDiscuss()) return;
+  await reloadRef(true);
+  raiseTarget = roster[0]||null;
+  document.getElementById('raiseIntent').value = '';
+  const list = document.getElementById('raiseList');
+  list.innerHTML = roster.map((id,i)=>pickRow({kind:'agent', id, name:(ref.agentMap[id]||{name:id}).name}, i===0)).join('') || '<div class="empty">阵容为空</div>';
+  wirePick(list, v=>raiseTarget=v);
+  SW.openModal('mRaise');
+}
+
+/* ---------- 结论与导出（VW-R5） ---------- */
+let lastConclusion = null, lastExport = null;
+function provOf(src){ if(!src) return ''; /* 来源标注只呈现智能体名；知识库保留在来源标注数据里供追溯 */ return `<span class="provtag">${SW.esc(src.agent||'')}</span>`; }
+async function loadConclusion(){
+  const [c, e] = await Promise.all([api.get(`/rooms/${roomId}/conclusion`), api.get(`/rooms/${roomId}/export`)]);
+  lastConclusion = c.body; lastExport = e.body;
+}
+function sectionList(items){
+  return `<ul>${(items||[]).map(it=>`<li>${SW.esc(it.point)}${provOf(it.source)}</li>`).join('')}</ul>`;
+}
+function renderConclusionModal(){
+  const body = document.getElementById('conclusionBody');
+  let html = '';
+  if (lastConclusion){
+    const s = lastConclusion.sections||{};
+    const annCount = (lastConclusion.source_annotations||[]).length;
+    // 章节数随本次讨论变化：命题框与关键观点、分歧点两块固定，其余按 sections 的插入序遍历
+    const rest = Object.keys(s).filter(k => k!=='命题' && k!=='关键观点' && k!=='分歧点');
+    let secs = '', no = 2;
+    for (const k of rest){
+      no += 1;
+      secs += `<div class="sec"><h3><span class="no">${no}</span>${SW.esc(k)}</h3><div class="plain">${SW.esc(String(s[k]||''))}</div></div>`;
+    }
+    html += `<div class="doc">
+      <div class="propbox"><div class="k">命题</div><div class="v">${SW.esc(s['命题']||room.proposition)}</div></div>
+      <div class="sec"><h3><span class="no">1</span>关键观点</h3>${sectionList(s['关键观点'])}</div>
+      <div class="sec"><h3><span class="no">2</span>分歧点</h3>${sectionList(s['分歧点'])}</div>
+      ${secs}
+      <div class="muted" style="font-size:12px;margin-top:10px">来源标注 ${annCount} 处 · 生成于 ${SW.fmtTime(lastConclusion.created_at)}</div>
+    </div>`;
+    html += `<div class="exp"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+      <span class="meta"><span class="n">结论文档 · Markdown</span><span class="s">${rest.length + 2} 章节 · 来源标注 ${annCount} 处</span></span>
+      <a class="dl" href="/rooms/${roomId}/conclusion/${lastConclusion.doc_id}/download" download>下载</a></div>`;
+  } else {
+    // 成员看不到生成入口，空态不能叫他点一个不存在的按钮；主持人的入口在输入框的斜杠菜单
+    html += `<div class="empty">${isHost() ? '尚未生成结论。在输入框键入 / 选择「阶段结论」，以命题与会话记忆生成阶段结论文档。' : '主持人尚未生成结论。生成之后你可以在这里读到阶段结论文档并下载。'}</div>`;
+  }
+  if (lastExport){
+    html += `<div class="exp" style="border-top:1px solid var(--line);margin-top:6px"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h6"/></svg></span>
+      <span class="meta"><span class="n">完整发言记录 · TXT</span><span class="s">${lastExport.entry_count} 条发言 · 每条含来源标识</span></span>
+      <a class="dl" href="/rooms/${roomId}/export/${lastExport.export_id}/download" download>下载</a></div>`;
+  }
+  body.innerHTML = html;
+}
+/* 斜杠技能的动作体：生成与导出都收口到这里，成功后打开产出模态让主持人看到新产物与下载 */
+async function openOutputs(){
+  await loadConclusion();
+  renderConclusionModal();
+  SW.openModal('mConclusion');
+}
+async function runConclusion(){
+  if (!canDiscuss()) return SW.toast('房间已结束，不再生成结论','err');
+  // 本地先开等待模态：WS 断开时触发者自己也看得到生成中提示；WS 事件到达时重复打开是幂等的
+  concluding = true;
+  closeMention(); closeSkillPop();
+  renderComposer();
+  SW.openModal('mConcluding');
+  const r = await api.post(`/rooms/${roomId}/conclusion`);
+  concluding = false;
+  SW.closeModal('mConcluding');
+  renderComposer();
+  if (!r.ok) return SW.toast(r.error||'生成失败','err');
+  lastConclusion = r.body; SW.toast('结论已生成','ok');
+  await openOutputs();
+}
+async function runExport(){
+  if (!canDiscuss()) return SW.toast('房间已结束，不再导出','err');
+  const r = await api.post(`/rooms/${roomId}/export`);
+  if (!r.ok) return SW.toast(r.error||'导出失败','err');
+  lastExport = r.body; SW.toast(`已导出 ${r.body.entry_count} 条发言`,'ok');
+  await openOutputs();
+}
+
+/* ---------- 斜杠技能：主持人在输入框调用的房间动作 ---------- */
+const SKILLS = [
+  {name:'阶段结论', desc:'以命题与会话记忆生成阶段结论文档', run: runConclusion},
+  {name:'导出发言记录', desc:'导出完整发言记录为 TXT 并给出下载', run: runExport},
+];
+let skillIdx = 0, skillList = [];
+function skillFragment(){
+  // 斜杠命令是整段输入而非正文中的记号：与 @ 的文中匹配刻意不同
+  const m = /^\/([^\s/]*)$/.exec(document.getElementById('composerInput').value);
+  return m ? m[1] : null;
+}
+function skillCandidates(frag){
+  // 技能是主持人的动作：成员键入斜杠只是普通字符，不弹候选层
+  if (!isHost()) return [];
+  const f = String(frag||'').toLowerCase();
+  return SKILLS.filter(s=>s.name.toLowerCase().indexOf(f) === 0);
+}
+function closeSkillPop(){
+  document.getElementById('skillPop').hidden = true;
+  skillList = []; skillIdx = 0;
+}
+function renderSkillPop(){
+  const pop = document.getElementById('skillPop');
+  const frag = skillFragment();
+  if (frag === null || !canDiscuss()){ closeSkillPop(); return; }
+  skillList = skillCandidates(frag);
+  if (!skillList.length){ closeSkillPop(); return; }
+  if (skillIdx >= skillList.length) skillIdx = 0;
+  pop.innerHTML = '<div class="hint">技能 · 回车执行 · 仅主持人</div>'
+    + skillList.map((s,i)=>`<div class="pick${i===skillIdx?' on':''}" data-skill="${i}">
+        <span class="info"><span class="n">/${SW.esc(s.name)}</span><span class="s">${SW.esc(s.desc)}</span></span>
+      </div>`).join('');
+  pop.hidden = false;
+  pop.querySelectorAll('[data-skill]').forEach((p,i)=>{
+    p.onmouseenter = ()=>{ skillIdx=i; renderSkillPop(); };
+    p.onclick = ()=>pickSkill(i);
+  });
+}
+function pickSkill(i){
+  const s = skillList[i];
+  closeSkillPop();
+  const inp = document.getElementById('composerInput');
+  inp.value = ''; inp.focus();
+  // 技能是动作而非补全：选中即执行，不把命令留回正文
+  if (s) void s.run();
+}
+
+/* ---------- 邀请 ---------- */
+function openInvite(){
+  document.getElementById('inviteLink').value = `${location.origin}/room/?id=${roomId}`;
+  document.getElementById('inviteJoined').innerHTML = members.map(memberRow).join('') || '<div class="empty">暂无</div>';
+  SW.openModal('mInvite');
+}
+
+/* ---------- 事件绑定 ---------- */
+function wire(){
+  ['mRaise','mInvite','mConclusion','mLeave'].forEach(SW.wireModal);
+  document.getElementById('btnLeave').onclick = leaveRoom;
+  document.getElementById('btnLeaveConfirm').onclick = confirmLeaveHost;
+  document.getElementById('btnMic').onclick = toggleMic;
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+    document.getElementById('pane-members').hidden = t.dataset.tab!=='members';
+    document.getElementById('pane-hands').hidden = t.dataset.tab!=='hands';
+    // 切页签即重算举手数字的标亮：进到举手栏熄灭，离开且队列仍非空则亮起
+    renderQueue();
+  });
+  document.getElementById('raiseConfirm').onclick = ()=>{ const intent=document.getElementById('raiseIntent').value.trim(); SW.closeModal('mRaise'); if(raiseTarget) doRaise(raiseTarget, intent); };
+  document.getElementById('btnSend').onclick = sendComposer;
+  const inp = document.getElementById('composerInput');
+  inp.addEventListener('keydown', onComposerKeydown);
+  inp.addEventListener('input', renderMention);
+  inp.addEventListener('input', renderSkillPop);
+  inp.addEventListener('blur', ()=>setTimeout(closeMention, 120));
+  document.getElementById('btnEnd').onclick = endRoom;
+  document.getElementById('btnInvite').onclick = openInvite;
+  document.getElementById('copyLink').onclick = ()=>{ const i=document.getElementById('inviteLink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(_){document.execCommand('copy');} SW.toast('链接已复制','ok'); };
+  document.getElementById('btnJoin').onclick = joinRoom;
+  document.getElementById('landName').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); joinRoom(); } });
+  document.getElementById('btnClaim').onclick = claimMember;
+  document.getElementById('landClaimToggle').onclick = e=>{
+    e.preventDefault();
+    const b = document.getElementById('landClaimBody');
+    b.hidden = !b.hidden;
+  };
+  // 打开时才取：结论与导出可能在进房之后才由主持人生成，缓存会漏掉
+  document.getElementById('btnConclusion').onclick = openOutputs;
+  document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) reloadRef(); });
+  window.addEventListener('focus', ()=>reloadRef());
+}
+
+wire();
+(async function boot(){
+  const id = SW.qs('id');
+  if (id) { await enterWithIdentity(id); } else {
+    // 建房与已有房间列表在大厅页：房间页不带 id 一律回大厅
+    location.replace('/lobby/');
+  }
+})();
+</script>
+</body>
+</html>

@@ -22,6 +22,9 @@ class MemoryService:
         content: str,
         cited_kb_ids: list[str] | None = None,
         no_kb_citation: bool = False,
+        addressee_agent_ids: list[str] | None = None,
+        addressee_member_ids: list[str] | None = None,
+        truncated: bool = False,
     ) -> Message:
         msg = Message(
             message_id=new_id("msg"),
@@ -31,12 +34,19 @@ class MemoryService:
             content=content,
             cited_kb_ids=list(cited_kb_ids or []),
             no_kb_citation=no_kb_citation,
+            addressee_agent_ids=list(addressee_agent_ids or []),
+            addressee_member_ids=list(addressee_member_ids or []),
+            truncated=truncated,
         )
         with Session(self.engine) as s:
             s.add(msg)
             s.commit()
             s.refresh(msg)
         return msg
+
+    def get_message(self, message_id: str) -> Message | None:
+        with Session(self.engine) as s:
+            return s.get(Message, message_id)
 
     def all_messages(self, room_id: str) -> list[Message]:
         with Session(self.engine) as s:
@@ -93,8 +103,23 @@ class MemoryService:
             s.refresh(row)
         return row
 
-    def build_context(self, proposition: str, room_id: str, agent_id: str, kb_hits=None) -> list[dict]:
-        recent = [{"role": "assistant", "content": m.content} for m in self.all_messages(room_id)[-20:]]
+    def build_context(
+        self,
+        proposition: str,
+        room_id: str,
+        agent_id: str,
+        kb_hits=None,
+        name_of=None,
+        focus: str | None = None,
+    ) -> list[dict]:
+        recent = []
+        for m in self.all_messages(room_id)[-20:]:
+            content = (
+                m.content
+                if name_of is None
+                else f"[{name_of(m.source_type, m.source_id)}·{m.source_type.value}] {m.content}"
+            )
+            recent.append({"role": "assistant", "content": content})
         return assemble_context(
             proposition=proposition,
             l2_summary=self.latest_summary(room_id),
@@ -102,4 +127,5 @@ class MemoryService:
             stance=self.get_stance(room_id, agent_id),
             kb_hits=kb_hits,
             budget=self.ctx_budget,
+            focus=focus,
         )

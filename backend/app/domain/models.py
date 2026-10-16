@@ -7,10 +7,12 @@ from sqlmodel import Field, SQLModel
 from app.domain.enums import (
     DocumentStatus,
     KnowledgeDimension,
+    MemberStatus,
     OrchestrationMode,
     RaiseHandStatus,
     RoomStatus,
     SourceType,
+    SpeechPace,
 )
 
 
@@ -19,6 +21,14 @@ def _now() -> datetime:
 
 
 # ---------- 系统级实体 ----------
+
+class SystemSetting(SQLModel, table=True):
+    __tablename__ = "system_setting"
+
+    key: str = Field(primary_key=True)
+    value: str
+    updated_at: datetime = Field(default_factory=_now)
+
 
 class ModelConnection(SQLModel, table=True):
     __tablename__ = "model_connection"
@@ -29,6 +39,8 @@ class ModelConnection(SQLModel, table=True):
     base_url: str
     api_key: str
     available_models: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    # 空值表示使用提供方缺省嵌入模型；更换后既有向量与新查询向量不同空间，需重新入库文档
+    embedding_model: str | None = None
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -66,17 +78,6 @@ class Chunk(SQLModel, table=True):
     vector_ref: Optional[str] = None
 
 
-class RoleCard(SQLModel, table=True):
-    __tablename__ = "role_card"
-
-    card_id: str = Field(primary_key=True)
-    name: str
-    persona: str
-    expertise: str
-    speaking_style: Optional[str] = None
-    created_at: datetime = Field(default_factory=_now)
-
-
 class Agent(SQLModel, table=True):
     __tablename__ = "agent"
 
@@ -84,7 +85,10 @@ class Agent(SQLModel, table=True):
     name: str
     model_connection_id: str = Field(foreign_key="model_connection.conn_id")
     model_name: str
-    role_card_id: str = Field(foreign_key="role_card.card_id")
+    persona: str
+    expertise: str
+    speaking_style: Optional[str] = None
+    speech_pace: SpeechPace = SpeechPace.BALANCED
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime = Field(default_factory=_now)
 
@@ -125,6 +129,11 @@ class HumanMember(SQLModel, table=True):
     room_id: str = Field(foreign_key="room.room_id")
     display_name: str
     is_host: bool = False
+    # 连接级身份的凭据：只在发放那一刻随响应出现一次，任何读接口都不下发。
+    # 既有房间的成员行留空，须经管理令牌认领后才有可校验的身份。
+    token: Optional[str] = None
+    # 在线状态：退出聊天室时置已退出并清令牌，认领时恢复在线
+    status: MemberStatus = Field(default=MemberStatus.ONLINE)
     joined_at: datetime = Field(default_factory=_now)
 
 
@@ -136,8 +145,17 @@ class Message(SQLModel, table=True):
     source_type: SourceType
     source_id: str
     content: str
+    # 受话者智能体标识列表；空列表表示群发。与 cited_kb_ids 同构存 JSON，不加外键约束，
+    # 避免智能体删除时的级联问题
+    addressee_agent_ids: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    # 受话的人类成员标识列表。与智能体列并存而不合并：智能体列的名字与校验口径都锚在
+    # 阵容内智能体，还决定串行应答次序；成员列只决定发言权授予与界面标注。
+    addressee_member_ids: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     cited_kb_ids: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     no_kb_citation: bool = False
+    # 正文超出档位安全界被提前收束，落库内容没有说完；读者与导出都需要该标记，
+    # 否则无从解释发言为何戛然而止。思考内容不落库，故不存在对应的思考截断标记。
+    truncated: bool = False
     created_at: datetime = Field(default_factory=_now)
 
 

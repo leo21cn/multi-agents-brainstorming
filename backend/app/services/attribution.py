@@ -10,6 +10,9 @@ def annotate(items: list[dict], source_of: dict) -> list[dict]:
 
 
 def format_inline(annotation: dict) -> str:
-    agent = annotation.get("agent") or ""
-    kbs = annotation.get("kbs") or []
-    return f"{agent} · {'、'.join(kbs)}" if kbs else agent
+    """来源标注的呈现形式：只呈现智能体名。
+
+    知识库保留在来源标注数据里供追溯，界面与 Markdown 文档不呈现——
+    标注标签要的是「这是谁说的」，知识库归属在看阵容与落地页时已经清楚。
+    """
+    return annotation.get("agent") or ""

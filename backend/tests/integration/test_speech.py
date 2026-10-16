@@ -21,7 +21,8 @@ def test_speech_no_hit_marks_flag(client, seeded, make_room):
             "model_connection_id": seeded["conn"]["conn_id"],
             "model_name": "qwen-plus",
             "kb_ids": [empty_kb["kb_id"]],
-            "role_card_id": seeded["card"]["card_id"],
+            "persona": "测试人设",
+            "expertise": "测试专长",
         },
     ).json()
     room = make_room(agent["agent_id"])

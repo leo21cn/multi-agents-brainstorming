@@ -6,5 +6,4 @@ def test_seed_builds_agents_with_kbs(tmp_path):
     assert counts["agents"] == 8
     assert counts["unbound_agents"] == 0
     assert counts["knowledge_bases"] == 3
-    assert counts["role_cards"] == 8
     assert counts["connections"] == 1

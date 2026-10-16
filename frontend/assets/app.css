@@ -1,0 +1,114 @@
+/* 火花会 Sparkwave · 共享设计令牌与基础组件（浅色极简） */
+:root{
+  --bg:#ffffff; --sidebar:#f7f8fa; --panel:#f7f8fa; --hover:#eef0f3; --hover-soft:#fafbfc;
+  --line:#e8eaed; --line-strong:#dfe2e6;
+  --text:#1f2329; --text-dim:#646a73; --text-faint:#8f959e;
+  --accent:#2b7fff; --accent-strong:#0b6ffb; --accent-soft:#eef4ff;
+  --ok:#12a594; --ok-soft:#e7f6f3;
+  --agent-bg:#e7f6f3; --agent-fg:#0f8a76; --agent-line:#c3e8df;
+  --raise-bg:#fdf3e3; --raise-fg:#b0791f; --raise-line:#f2dcb2;
+  --human-bg:#eef0ff; --human-fg:#4a57c9;
+  --host-bg:#eef4ff; --host-fg:#0b6ffb;
+  --danger:#e0524d; --danger-soft:#fdecec; --danger-line:#f3c9c9;
+  --radius:8px; --radius-lg:12px;
+  --font:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"SF Mono","JetBrains Mono",Consolas,"Cascadia Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#dcdfe3;border-radius:8px;border:3px solid #fff}
+
+/* 按钮：文字不换行——窄容器（如邀请模态的链接行）里「复制」这类两字按钮不许折成两行 */
+.btn{padding:9px 16px;border-radius:var(--radius);font-size:13.5px;background:#fff;border:1px solid var(--line-strong);color:var(--text-dim);white-space:nowrap}
+.btn:hover{border-color:var(--text-faint);color:var(--text)}
+.btn.primary{background:var(--accent-strong);border-color:transparent;color:#fff;font-weight:500}
+.btn.primary:hover{background:#1f7dff}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)}
+.btn.sm{padding:6px 12px;font-size:12.5px}
+.btn.link{border:none;color:var(--accent-strong);padding:4px 6px}
+.btn.link:hover{background:var(--accent-soft)}
+.btn.link.danger{color:var(--danger)}
+.btn.link.danger:hover{background:var(--danger-soft)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+
+/* 卡片 / 布局原语 */
+.card{border:1px solid var(--line);border-radius:var(--radius-lg);background:#fff;padding:20px 22px;margin-bottom:16px}
+.card h2{margin:0 0 3px;font-size:15px;font-weight:600}
+.card .desc{margin:0 0 18px;font-size:12.5px;color:var(--text-faint)}
+.between{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.inline{display:flex;gap:10px;align-items:center}
+.inline .btn{flex:none}
+.grow{flex:1}
+.mono{font-family:var(--mono);font-size:12.5px}
+.muted{color:var(--text-faint)}
+.crumb{font-size:12px;color:var(--text-faint);margin-bottom:6px}
+h1.page{margin:0 0 4px;font-size:21px;font-weight:600;letter-spacing:.01em}
+.sub{color:var(--text-dim);font-size:13.5px;margin:0 0 22px}
+
+/* 表单 */
+input[type=text],input[type=password],select,textarea{
+  width:100%;padding:9px 12px;border:1px solid var(--line-strong);border-radius:var(--radius);
+  font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:64px;line-height:1.6}
+.row{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start;padding:13px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row .lbl{font-size:13px;color:var(--text-dim);padding-top:8px}
+.row .lbl .req{color:var(--danger);margin-left:3px}
+.row .lbl .help{display:block;font-size:11.5px;color:var(--text-faint);margin-top:4px;line-height:1.45}
+.ctl{max-width:520px}
+.frow{padding:12px 0;border-bottom:1px solid var(--line)}
+.frow:last-child{border-bottom:none}
+.frow .lbl{font-size:12.5px;color:var(--text-dim);margin-bottom:7px}
+.frow .lbl .req{color:var(--danger);margin-left:3px}
+.frow .lbl .help{display:block;font-size:11.5px;color:var(--text-faint);margin-top:4px;line-height:1.45}
+
+/* 多选 chip */
+.choices{display:flex;flex-wrap:wrap;gap:9px}
+.choice{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--line-strong);border-radius:999px;font-size:13px;color:var(--text-dim);background:#fff;cursor:pointer}
+.choice:hover{border-color:var(--accent);color:var(--text)}
+.choice.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong)}
+.choice .tick{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center}
+.choice.on .tick{background:var(--accent-strong);border-color:var(--accent-strong)}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--text-faint);font-size:12px;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--hover-soft)}
+
+/* 徽标 */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong)}
+.badge.gray{background:#f2f3f5;color:var(--text-dim)}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--raise-bg);color:var(--raise-fg)}
+.masked{font-family:var(--mono);letter-spacing:.1em;color:var(--text-dim)}
+.empty{padding:26px;text-align:center;color:var(--text-faint);font-size:13px}
+
+/* 模态 */
+.overlay{position:fixed;inset:0;background:rgba(31,35,41,.32);display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+.overlay.open{display:flex}
+.dialog{width:560px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(31,35,41,.24);overflow:hidden}
+.dialog .dh{padding:18px 22px;border-bottom:1px solid var(--line)}
+.dialog .dh .t{font-weight:600;font-size:15px}
+.dialog .dh .s{font-size:12px;color:var(--text-faint);margin-top:2px}
+.dialog .db{padding:6px 22px 16px;overflow-y:auto}
+.dialog .df{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px;background:var(--panel)}
+
+/* 提示条 / toast */
+.note{background:var(--hover-soft);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:11px 14px;font-size:12.5px;color:var(--text-dim)}
+.note.ok{background:var(--ok-soft);border-color:var(--agent-line);border-left-color:var(--ok);color:#0f8a76}
+.note.err{background:var(--danger-soft);border-color:var(--danger-line);border-left-color:var(--danger);color:#c0392b}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;transition:.24s;z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-item{background:#1f2329;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:80vw}
+.toast-item.err{background:#c0392b}
+.toast-item.ok{background:#0f8a76}

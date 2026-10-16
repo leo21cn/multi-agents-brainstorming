@@ -54,7 +54,9 @@ def run(propositions_path: str, work_dir: str | None = None) -> dict:
     export_ok = True
 
     for p in props:
-        room_obj = room.create_room(p["text"], "人类主持控制", [a.agent_id for a in roster], "陈默")
+        room_obj, _host_token = room.create_room(
+            p["text"], "人类主持控制", [a.agent_id for a in roster], "陈默"
+        )
         before = len(memory.all_messages(room_obj.room_id))
         for agent in roster:
             speech.generate(room_obj.room_id, agent.agent_id, intent=p["text"])

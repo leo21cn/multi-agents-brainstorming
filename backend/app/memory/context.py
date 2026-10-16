@@ -5,9 +5,13 @@ def assemble_context(
     stance: str | None,
     kb_hits,
     budget: int,
+    focus: str | None = None,
 ) -> list[dict]:
-    """按 L0 命题 → L2 摘要 → L1 近期原文 → L3 立场 → 知识检索 组装，超预算按序裁剪。"""
+    """按 L0 命题与当前焦点 → L2 摘要 → L1 近期原文 → L3 立场 → 知识检索 组装，超预算按序裁剪。"""
     blocks: list[tuple[str, str]] = [("system", f"命题：{proposition}")]
+    if focus:
+        # 焦点紧跟命题：裁剪按块序 break，靠后的块先被牺牲，而定向提问必须进入上下文
+        blocks.append(("system", f"当前焦点：{focus}"))
     if l2_summary:
         blocks.append(("system", f"讨论摘要：{l2_summary}"))
     for m in recent_messages:

@@ -1,4 +1,4 @@
-"""建系统级配置：模型连接、三维度知识库、角色卡与 8 个智能体。"""
+"""建系统级配置：模型连接、三维度知识库与 8 个智能体（含提示词）。"""
 
 import os
 import sys
@@ -8,6 +8,7 @@ from app.persistence.db import get_engine, init_db
 from app.rag.vectorstore import InMemoryVectorStore
 from app.services.config_service import ConfigService
 from app.settings import Settings
+from scripts.agent_presets import AGENT_PRESETS
 
 ROSTER = [
     ("业务领域专家", "qwen-plus", ["业务领域"]),
@@ -20,7 +21,8 @@ ROSTER = [
     ("批判者", "qwen-max", ["业务领域", "项目管理与软件工程方法论", "技术架构"]),
 ]
 
-AVAILABLE_MODELS = ["qwen-max", "qwen-plus", "qwen-turbo", "text-embedding-v3"]
+AVAILABLE_MODELS = ["qwen-max", "qwen-plus", "qwen-turbo"]
+EMBEDDING_MODEL = "text-embedding-v3"
 
 
 def seed(db_path, data_dir, api_key: str | None = None) -> dict:
@@ -39,6 +41,7 @@ def seed(db_path, data_dir, api_key: str | None = None) -> dict:
                 "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
                 "api_key": api_key or os.environ.get("DASHSCOPE_API_KEY", ""),
                 "available_models": AVAILABLE_MODELS,
+                "embedding_model": EMBEDDING_MODEL,
             },
         )()
     )
@@ -48,18 +51,18 @@ def seed(db_path, data_dir, api_key: str | None = None) -> dict:
     for dim in KnowledgeDimension:
         kbs[dim.value] = svc.get_or_create_knowledge_base(dim.value, dim)
 
-    cards = {}
-    for name, _, _ in ROSTER:
-        cards[name] = svc.create_role_card(name, f"{name}的角色人设", f"{name}的专长")
-
     unbound = 0
     for name, model_name, kb_names in ROSTER:
+        persona, expertise, style, pace = AGENT_PRESETS[name]
         agent = svc.create_agent(
             name,
             conn.conn_id,
             model_name,
             [kbs[k].kb_id for k in kb_names],
-            cards[name].card_id,
+            persona,
+            expertise,
+            style,
+            speech_pace=pace,
         )
         if not svc.bound_kb_ids(agent.agent_id):
             unbound += 1
@@ -67,7 +70,6 @@ def seed(db_path, data_dir, api_key: str | None = None) -> dict:
     return {
         "connections": len(svc.list_connections()),
         "knowledge_bases": len(svc.list_knowledge_bases()),
-        "role_cards": len(svc.list_role_cards()),
         "agents": len(svc.list_agents()),
         "unbound_agents": unbound,
     }

@@ -6,3 +6,8 @@ data/
 .env
 node_modules/
 dist/
+
+*.log
+server.log
+server.err.log
+.pytest-last.txt

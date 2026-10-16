@@ -17,3 +17,6 @@ def get_engine(settings: Settings):
 
 def init_db(engine) -> None:
     SQLModel.metadata.create_all(engine)
+    from app.services.config_service import ConfigService
+
+    ConfigService(engine).ensure_admin_token()

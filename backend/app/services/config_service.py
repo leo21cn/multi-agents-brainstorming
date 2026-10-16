@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from app.domain.enums import DocumentStatus
+from app.domain.enums import DocumentStatus, SpeechPace
 from app.domain.models import (
     Agent,
     AgentKnowledgeBase,
@@ -8,11 +8,22 @@ from app.domain.models import (
     Document,
     KnowledgeBase,
     ModelConnection,
-    RoleCard,
+    RoomAgent,
+    SystemSetting,
+    _now,
 )
 from app.rag import embeddings
 from app.rag.splitter import split_text
 from app.util import new_id
+
+DEFAULT_ADMIN_TOKEN = "111111"
+ADMIN_TOKEN_KEY = "admin_token"
+SHOW_RAISE_SIM_KEY = "show_raise_sim"
+AUTO_RAISE_KEY = "auto_raise"
+CONCLUSION_CONN_KEY = "conclusion_conn_id"
+CONCLUSION_MODEL_KEY = "conclusion_model"
+ASR_CONN_KEY = "asr_conn_id"
+ASR_MODEL_KEY = "asr_model"
 
 
 def mask_key(key: str) -> str:
@@ -21,10 +32,104 @@ def mask_key(key: str) -> str:
     return key[:3] + "•" * 8 + key[-4:]
 
 
+class InUseError(Exception):
+    """目标被引用，不可删除。"""
+
+
 class ConfigService:
     def __init__(self, engine, vector_store=None):
         self.engine = engine
         self.vs = vector_store
+
+    # ---------- 系统设置与管理员令牌 ----------
+    def get_setting(self, key: str) -> str | None:
+        with Session(self.engine) as s:
+            row = s.get(SystemSetting, key)
+            return row.value if row else None
+
+    def set_setting(self, key: str, value: str) -> None:
+        with Session(self.engine) as s:
+            row = s.get(SystemSetting, key)
+            if row is None:
+                row = SystemSetting(key=key, value=value)
+            else:
+                row.value = value
+                row.updated_at = _now()
+            s.add(row)
+            s.commit()
+
+    def ensure_admin_token(self) -> str:
+        """确保管理员令牌存在；缺省时写入默认值并返回。"""
+        token = self.get_setting(ADMIN_TOKEN_KEY)
+        if token is None:
+            self.set_setting(ADMIN_TOKEN_KEY, DEFAULT_ADMIN_TOKEN)
+            return DEFAULT_ADMIN_TOKEN
+        return token
+
+    def get_admin_token(self) -> str:
+        token = self.get_setting(ADMIN_TOKEN_KEY)
+        return token if token is not None else DEFAULT_ADMIN_TOKEN
+
+    def set_admin_token(self, new_token: str) -> None:
+        value = (new_token or "").strip()
+        if not value:
+            raise ValueError("admin token must not be empty")
+        # 令牌经 HTTP 头传输，非 ASCII 值无法编码，会导致管理界面无法再发出任何请求
+        if not value.isascii():
+            raise ValueError("admin token must be ASCII")
+        self.set_setting(ADMIN_TOKEN_KEY, value)
+
+    def get_show_raise_sim(self) -> bool:
+        """模拟举手入口缺省显示：未播种的既有库读取时按真处理，不做迁移。"""
+        return self.get_setting(SHOW_RAISE_SIM_KEY) != "0"
+
+    def set_show_raise_sim(self, shown: bool) -> None:
+        self.set_setting(SHOW_RAISE_SIM_KEY, "1" if shown else "0")
+
+    def get_auto_raise(self) -> bool:
+        """自主举手缺省开：未播种的既有库读取时按开处理，不做迁移。"""
+        return self.get_setting(AUTO_RAISE_KEY) != "0"
+
+    def set_auto_raise(self, enabled: bool) -> None:
+        self.set_setting(AUTO_RAISE_KEY, "1" if enabled else "0")
+
+    def get_conclusion_model(self) -> tuple[str | None, str | None]:
+        """结论综合的连接与模型名；留空表示回落房间阵容首位智能体，既有库无需迁移。"""
+        conn_id = self.get_setting(CONCLUSION_CONN_KEY) or None
+        model = self.get_setting(CONCLUSION_MODEL_KEY) or None
+        return conn_id, model
+
+    def set_conclusion_model(self, conn_id: str | None, model_name: str | None) -> None:
+        conn_id = (conn_id or "").strip() or None
+        model_name = (model_name or "").strip() or None
+        if bool(conn_id) != bool(model_name):
+            raise ValueError("结论综合的连接与模型名须同时给出或同时留空")
+        if conn_id is not None:
+            conn = self.get_connection(conn_id)
+            if conn is None:
+                raise ValueError("model connection not found")
+            if model_name not in (conn.available_models or []):
+                raise ValueError("模型名不在该连接的可用模型列表内")
+        self.set_setting(CONCLUSION_CONN_KEY, conn_id or "")
+        self.set_setting(CONCLUSION_MODEL_KEY, model_name or "")
+
+    def get_asr_model(self) -> tuple[str | None, str | None]:
+        """语音转写的连接与模型名；留空表示未配置（语音按钮给出引导），既有库无需迁移。"""
+        conn_id = self.get_setting(ASR_CONN_KEY) or None
+        model = self.get_setting(ASR_MODEL_KEY) or None
+        return conn_id, model
+
+    def set_asr_model(self, conn_id: str | None, model_name: str | None) -> None:
+        conn_id = (conn_id or "").strip() or None
+        model_name = (model_name or "").strip() or None
+        if bool(conn_id) != bool(model_name):
+            raise ValueError("语音转写的连接与模型名须同时给出或同时留空")
+        if conn_id is not None:
+            if self.get_connection(conn_id) is None:
+                raise ValueError("model connection not found")
+            # 转写模型名是自由文本（如 qwen-audio-3.0-asr-flash），不校验可用对话模型列表
+        self.set_setting(ASR_CONN_KEY, conn_id or "")
+        self.set_setting(ASR_MODEL_KEY, model_name or "")
 
     # ---------- 模型连接 ----------
     def create_connection(self, data) -> ModelConnection:
@@ -35,6 +140,7 @@ class ConfigService:
             base_url=data.base_url,
             api_key=data.api_key,
             available_models=list(data.available_models),
+            embedding_model=(data.embedding_model or "").strip() or None,
         )
         with Session(self.engine) as s:
             s.add(conn)
@@ -56,11 +162,30 @@ class ConfigService:
             if conn is None:
                 return None
             for key, value in data.model_dump(exclude_none=True).items():
+                if key == "embedding_model":
+                    value = value.strip() or None
                 setattr(conn, key, value)
             s.add(conn)
             s.commit()
             s.refresh(conn)
             return conn
+
+    def connection_in_use(self, conn_id: str) -> bool:
+        with Session(self.engine) as s:
+            return (
+                s.exec(select(Agent).where(Agent.model_connection_id == conn_id)).first()
+                is not None
+            )
+
+    def delete_connection(self, conn_id: str) -> bool:
+        if self.get_connection(conn_id) is None:
+            return False
+        if self.connection_in_use(conn_id):
+            raise InUseError("该连接被智能体引用，无法删除")
+        with Session(self.engine) as s:
+            s.delete(s.get(ModelConnection, conn_id))
+            s.commit()
+        return True
 
     # ---------- 知识库与文档 ----------
     def create_knowledge_base(self, name: str, dimension) -> KnowledgeBase:
@@ -84,6 +209,38 @@ class ConfigService:
         with Session(self.engine) as s:
             return s.get(KnowledgeBase, kb_id)
 
+    def kb_in_use(self, kb_id: str) -> bool:
+        with Session(self.engine) as s:
+            return (
+                s.exec(
+                    select(AgentKnowledgeBase).where(AgentKnowledgeBase.kb_id == kb_id)
+                ).first()
+                is not None
+            )
+
+    def delete_knowledge_base(self, kb_id: str) -> bool:
+        if self.get_knowledge_base(kb_id) is None:
+            return False
+        if self.kb_in_use(kb_id):
+            raise InUseError("该知识库已被智能体绑定，无法删除")
+        with Session(self.engine) as s:
+            docs = s.exec(select(Document).where(Document.kb_id == kb_id)).all()
+            all_chunk_ids: list[str] = []
+            for d in docs:
+                chunks = s.exec(select(Chunk).where(Chunk.doc_id == d.doc_id)).all()
+                all_chunk_ids.extend(c.chunk_id for c in chunks)
+                for c in chunks:
+                    s.delete(c)
+                s.delete(d)
+            s.delete(s.get(KnowledgeBase, kb_id))
+            s.commit()
+        if self.vs is not None and all_chunk_ids:
+            try:
+                self.vs.delete(kb_id, all_chunk_ids)
+            except Exception:
+                pass
+        return True
+
     def ingest_document(
         self, kb_id: str, file_name: str, format: str, text: str, size: int = 0
     ) -> Document:
@@ -92,6 +249,8 @@ class ConfigService:
         content = (text or "").strip()
         if not content:
             raise ValueError("empty document")
+        if not size:
+            size = len((text or "").encode("utf-8"))
         chunks = split_text(content)
         vectors = embeddings.embed_texts(chunks)
         doc_id = new_id("doc")
@@ -122,32 +281,40 @@ class ConfigService:
                 stmt = stmt.where(Document.kb_id == kb_id)
             return list(s.exec(stmt).all())
 
-    # ---------- 角色卡 ----------
-    def create_role_card(self, name, persona, expertise, speaking_style=None) -> RoleCard:
-        card = RoleCard(
-            card_id=new_id("card"),
-            name=name,
-            persona=persona,
-            expertise=expertise,
-            speaking_style=speaking_style,
-        )
+    def get_document(self, doc_id: str) -> Document | None:
         with Session(self.engine) as s:
-            s.add(card)
+            return s.get(Document, doc_id)
+
+    def delete_document(self, doc_id: str) -> bool:
+        with Session(self.engine) as s:
+            doc = s.get(Document, doc_id)
+            if doc is None:
+                return False
+            chunks = s.exec(select(Chunk).where(Chunk.doc_id == doc_id)).all()
+            ids = [c.chunk_id for c in chunks]
+            kb_id = doc.kb_id
+            for c in chunks:
+                s.delete(c)
+            s.delete(doc)
             s.commit()
-            s.refresh(card)
-        return card
-
-    def list_role_cards(self) -> list[RoleCard]:
-        with Session(self.engine) as s:
-            return list(s.exec(select(RoleCard)).all())
-
-    def get_role_card(self, card_id: str) -> RoleCard | None:
-        with Session(self.engine) as s:
-            return s.get(RoleCard, card_id)
+        if self.vs is not None and ids:
+            try:
+                self.vs.delete(kb_id, ids)
+            except Exception:
+                pass
+        return True
 
     # ---------- 智能体 ----------
     def create_agent(
-        self, name, model_connection_id, model_name, kb_ids, role_card_id
+        self,
+        name,
+        model_connection_id,
+        model_name,
+        kb_ids,
+        persona,
+        expertise,
+        speaking_style=None,
+        speech_pace=None,
     ) -> Agent:
         conn = self.get_connection(model_connection_id)
         if conn is None:
@@ -159,14 +326,17 @@ class ConfigService:
         for kb_id in kb_ids:
             if self.get_knowledge_base(kb_id) is None:
                 raise ValueError(f"knowledge base not found: {kb_id}")
-        if self.get_role_card(role_card_id) is None:
-            raise ValueError("role card not found")
+        if not (persona or "").strip():
+            raise ValueError("persona required")
         agent = Agent(
             agent_id=new_id("agent"),
             name=name,
             model_connection_id=model_connection_id,
             model_name=model_name,
-            role_card_id=role_card_id,
+            persona=persona,
+            expertise=expertise,
+            speaking_style=speaking_style,
+            speech_pace=speech_pace or SpeechPace.BALANCED,
         )
         with Session(self.engine) as s:
             s.add(agent)
@@ -214,6 +384,30 @@ class ConfigService:
             s.commit()
             s.refresh(agent)
             return agent
+
+    def rooms_using(self, agent_id: str) -> int:
+        """该智能体被多少个房间选用（含已结束房间——选用关系保留）。"""
+        with Session(self.engine) as s:
+            return len(
+                s.exec(select(RoomAgent).where(RoomAgent.agent_id == agent_id)).all()
+            )
+
+    def agent_in_use(self, agent_id: str) -> bool:
+        return self.rooms_using(agent_id) > 0
+
+    def delete_agent(self, agent_id: str) -> bool:
+        if self.get_agent(agent_id) is None:
+            return False
+        if self.agent_in_use(agent_id):
+            raise InUseError("该智能体已被房间选用，无法删除")
+        with Session(self.engine) as s:
+            for row in s.exec(
+                select(AgentKnowledgeBase).where(AgentKnowledgeBase.agent_id == agent_id)
+            ).all():
+                s.delete(row)
+            s.delete(s.get(Agent, agent_id))
+            s.commit()
+        return True
 
     # ---------- 初始化状态 ----------
     def init_status(self) -> dict:

@@ -15,7 +15,8 @@ def test_agent_binds_multiple_kbs():
             name="架构师",
             model_connection_id="c1",
             model_name="qwen-max",
-            role_card_id="r1",
+            persona="资深架构师",
+            expertise="技术债",
         )
         s.add_all([kb1, kb2, ag])
         s.commit()
@@ -38,7 +39,6 @@ def test_all_tables_created():
         "knowledge_base",
         "document",
         "chunk",
-        "role_card",
         "agent",
         "agent_knowledge_base",
         "room",

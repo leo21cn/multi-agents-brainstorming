@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/assets/icon/favicon.svg">
+<title>火花会 Sparkwave · 创建房间</title>
+<link rel="stylesheet" href="/assets/app.css">
+<style>
+  /* ---------- 大厅（建房 / 房间列表） ---------- */
+  .lobbytop{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .lobbytop img.mark{width:30px;height:30px;border-radius:8px;display:block}
+  .lobbytop .title{font-weight:600;font-size:15px}
+  .lobbytop .crumb{font-size:12px;color:var(--text-faint)}
+  .wrap{max-width:860px;margin:26px auto 60px;padding:0 24px}
+  h2.page{margin:0 0 4px;font-size:20px;font-weight:600}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mode{display:flex;gap:11px;align-items:flex-start;padding:13px;border:1px solid var(--line-strong);border-radius:var(--radius);background:#fff;cursor:pointer}
+  .mode .radio{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-strong);flex:0 0 auto;margin-top:1px;display:grid;place-items:center}
+  .mode.on{border-color:var(--accent);background:var(--accent-soft)}
+  .mode.on .radio{border-color:var(--accent-strong)}
+  .mode.on .radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent-strong)}
+  .mode.disabled{opacity:.55;cursor:not-allowed;background:var(--hover-soft)}
+  .mode .n{display:block;font-size:13.5px;font-weight:500}
+  .mode .s{display:block;font-size:11.5px;color:var(--text-faint);margin-top:2px}
+  .mode .lock{font-size:11px;color:var(--text-faint);border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:auto;white-space:nowrap}
+  .roster{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ag{display:flex;gap:11px;align-items:center;padding:12px;border:1px solid var(--line-strong);border-radius:var(--radius);cursor:pointer}
+  .ag.on{border-color:var(--accent);background:var(--accent-soft)}
+  .ag .box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--line-strong);flex:0 0 auto;display:grid;place-items:center;font-size:11px;color:#fff}
+  .ag.on .box{background:var(--accent-strong);border-color:var(--accent-strong)}
+  .ag .av{width:32px;height:32px;border-radius:9px;background:var(--agent-bg);color:var(--agent-fg);display:grid;place-items:center;font-weight:600;font-size:12.5px;flex:0 0 auto}
+  .ag .info{min-width:0}
+  .ag .n{display:block;font-size:13px;font-weight:500}
+  .ag .s{display:block;font-family:var(--mono);font-size:11px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .roomlist .ri{display:flex;align-items:center;gap:12px;padding:12px 4px;border-top:1px solid var(--line)}
+  .roomlist .ri:first-child{border-top:none}
+  .roomlist .ri .p{flex:1;min-width:0}
+  .roomlist .ri .p .t{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .roomlist .ri .p .s{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+</style>
+</head>
+<body>
+<header class="lobbytop">
+  <img class="mark" src="/assets/icon/sparkwave-app-icon.svg" alt="火花会 Sparkwave">
+  <div><div class="title">火花会 Sparkwave</div><div class="crumb">房间界面 / 创建房间</div></div>
+  <div style="flex:1"></div>
+</header>
+<div class="wrap">
+  <div id="initGate"></div>
+  <h2 class="page">创建房间</h2>
+  <p class="sub">从已配置的智能体中选用阵容，设定命题与编排模式。知识库与智能体本体的配置在管理后台完成。</p>
+
+  <div class="card">
+    <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600">命题 <span class="muted" id="newPropCount" style="font-size:12px;font-weight:400"></span></h3>
+    <textarea id="newProp" maxlength="200">某功能预计延期两周，且版本绑定了一个客户侧合规截止日，应砍范围、加人还是推迟发布？</textarea>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600">编排模式</h3>
+    <p class="desc">决定发言轮次如何驱动与何时收敛出结论。本版仅完整实现"人类主持控制"。</p>
+    <div class="modes">
+      <label class="mode on"><span class="radio"></span><span><span class="n">人类主持控制</span><span class="s">主持人 @ 提问、放行插嘴、触发结论</span></span></label>
+      <label class="mode disabled"><span class="radio"></span><span><span class="n">固定轮询</span><span class="s">按既定顺序轮流发言</span></span><span class="lock">本版未实现</span></label>
+      <label class="mode disabled"><span class="radio"></span><span><span class="n">AI 主持人调度</span><span class="s">协调者智能体点名与收敛</span></span><span class="lock">本版未实现</span></label>
+      <label class="mode disabled"><span class="radio"></span><span><span class="n">自由抢话</span><span class="s">各智能体自行判断是否插嘴</span></span><span class="lock">本版未实现</span></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600" id="rosterHead">选用阵容</h3>
+    <p class="desc">从系统级已配置智能体中勾选组建本次阵容；知识库与模型来自各自配置。</p>
+    <div class="roster" id="roster"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 3px;font-size:14.5px;font-weight:600">主持人</h3>
+    <p class="desc">创建者默认为主持人，可随后在成员面板指定他人。</p>
+    <div class="inline"><input type="text" id="hostName" value="陈默" style="max-width:240px"></div>
+  </div>
+
+  <div class="between" style="margin-top:6px">
+    <div class="muted" style="font-size:12.5px">开始后阵容与命题不可修改；人类成员可随后经邀请加入。</div>
+    <button class="btn primary" id="btnCreate">开始讨论</button>
+  </div>
+
+  <div style="height:26px"></div>
+  <div class="card">
+    <h2>已有房间</h2><p class="desc">点击进入既有房间继续讨论或查看产出。</p>
+    <div class="roomlist" id="roomList"></div>
+  </div>
+</div>
+
+<script src="/assets/api.js"></script>
+<script src="/assets/ui.js"></script>
+<script>
+const ref = { agents:[], kbs:[], agentMap:{}, kbMap:{}, ui:null };
+
+async function loadRef(){
+  const [agents, kbs, ui] = await Promise.all([
+    api.get('/agents'), api.get('/knowledge-bases'), api.get('/system/ui-options')
+  ]);
+  ref.agents = agents.body||[]; ref.kbs = kbs.body||[]; ref.ui = ui.body||null;
+  ref.kbMap = Object.fromEntries(ref.kbs.map(k=>[k.kb_id,k.name]));
+  ref.agentMap = Object.fromEntries(ref.agents.map(a=>[a.agent_id, {
+    name:a.name, model_name:a.model_name,
+    kb_names:(a.kb_ids||[]).map(id=>ref.kbMap[id]||id)
+  }]));
+}
+const summarize = (a) => { const m=ref.agentMap[a]||{}; return `${m.model_name||''} · ${(m.kb_names||[]).join(' · ')||'无知识库'}`; };
+
+async function renderGate(){
+  const r = await api.get('/system/init-status');
+  const s = r.body||{};
+  const host = document.getElementById('initGate');
+  if (s.ready) {
+    // 达标时不显示横幅：能建房本身就说明系统已就绪，计数信息在管理后台可见
+    host.innerHTML = '';
+  } else {
+    host.innerHTML = `<div class="note err" style="margin-bottom:16px">系统尚未达标（知识库 ${s.kb_count||0}、已绑定智能体 ${s.bound_agent_count||0}）。请先到 <a href="/admin/" style="color:inherit;text-decoration:underline">管理后台</a> 完成配置后再建房。</div>`;
+  }
+  document.getElementById('btnCreate').disabled = !s.ready || !ref.agents.length;
+}
+function renderRoster(){
+  const host = document.getElementById('roster');
+  if (!ref.agents.length){ host.innerHTML = '<div class="empty">尚无智能体，请先到管理后台创建。</div>'; return; }
+  host.innerHTML = ref.agents.map((a,i)=>`
+    <label class="ag ${i<5?'on':''}" data-ag="${a.agent_id}">
+      <span class="box">${i<5?'✓':''}</span>
+      <span class="av">${SW.initial(a.name)}</span>
+      <span class="info"><span class="n">${SW.esc(a.name)}</span><span class="s">${SW.esc(summarize(a.agent_id))}</span></span>
+    </label>`).join('');
+  host.querySelectorAll('.ag').forEach(el=>el.onclick=()=>{ el.classList.toggle('on'); el.querySelector('.box').textContent = el.classList.contains('on')?'✓':''; updateRosterHead(); });
+  updateRosterHead();
+}
+function updateRosterHead(){
+  const on = document.querySelectorAll('#roster .ag.on').length, tot = ref.agents.length;
+  document.getElementById('rosterHead').textContent = `选用阵容 · 已选 ${on} / 共 ${tot}`;
+}
+async function renderRoomList(){
+  const r = await api.get('/rooms');
+  const rooms = r.body||[];
+  const host = document.getElementById('roomList');
+  if (!rooms.length){ host.innerHTML = '<div class="empty">暂无房间</div>'; return; }
+  const badge = (st)=> st==='讨论中'?'<span class="badge ok">讨论中</span>': st==='已结束'?'<span class="badge gray">已结束</span>':'<span class="badge warn">待开始</span>';
+  host.innerHTML = rooms.slice().reverse().map(rm=>`
+    <div class="ri">
+      <div class="p"><div class="t">${SW.esc(rm.proposition)}</div><div class="s">${SW.esc(rm.room_id)} · ${SW.fmtTime(rm.created_at)}</div></div>
+      ${badge(rm.status)}
+      <button class="btn sm" data-enter="${rm.room_id}">进入</button>
+    </div>`).join('');
+  host.querySelectorAll('[data-enter]').forEach(b=>b.onclick=()=>gotoRoom(b.dataset.enter));
+}
+async function createRoom(){
+  const proposition = document.getElementById('newProp').value.trim();
+  const host_name = document.getElementById('hostName').value.trim() || '主持人';
+  const agent_ids = Array.from(document.querySelectorAll('#roster .ag.on')).map(e=>e.dataset.ag);
+  if (!proposition) return SW.toast('请填写命题','err');
+  if (proposition.length > 200) return SW.toast('命题过长，请控制在 200 字以内','err');
+  if (!agent_ids.length) return SW.toast('请至少选用一个智能体','err');
+  const btn = document.getElementById('btnCreate'); btn.disabled=true; btn.textContent='创建中…';
+  const r = await api.post('/rooms', { proposition, orchestration_mode:'人类主持控制', agent_ids, host_name });
+  btn.disabled=false; btn.textContent='开始讨论';
+  if (!r.ok) return SW.report(r);
+  const id = r.body.room_id;
+  SW.member.enter(id, r.body.host_member_id, r.body.host_token);
+  await api.post(`/rooms/${id}/start`);
+  gotoRoom(id);
+}
+function gotoRoom(id){
+  // 大厅与聊天室分属两页：建房或进入已有房间即跳转到房间页
+  location.href = `/room/?id=${id}`;
+}
+function wire(){
+  document.getElementById('btnCreate').onclick = createRoom;
+  const np = document.getElementById('newProp');
+  const updatePropCount = ()=> { document.getElementById('newPropCount').textContent = `${np.value.length} / 200`; };
+  np.addEventListener('input', updatePropCount);
+  updatePropCount();
+  document.querySelectorAll('.mode:not(.disabled)').forEach(m=>m.onclick=()=>{ document.querySelectorAll('.mode:not(.disabled)').forEach(x=>x.classList.remove('on')); m.classList.add('on'); });
+}
+
+(async function boot(){
+  await loadRef();
+  wire();
+  renderGate(); renderRoster(); await renderRoomList();
+})();
+</script>
+</body>
+</html>

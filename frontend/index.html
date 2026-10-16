@@ -3,86 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>火花会 Sparkwave · 演示台</title>
+<link rel="icon" type="image/svg+xml" href="/assets/icon/favicon.svg">
+<title>火花会 Sparkwave</title>
+<link rel="stylesheet" href="/assets/app.css">
 <style>
-  :root{--line:#e8eaed;--text:#1f2329;--dim:#646a73;--accent:#2b7fff;--soft:#eef4ff;--panel:#f7f8fa;--ok:#12a594}
-  *{box-sizing:border-box}
-  body{margin:0;background:#fff;color:var(--text);font:14px/1.6 "PingFang SC","Microsoft YaHei",system-ui,sans-serif}
-  .wrap{max-width:900px;margin:0 auto;padding:32px 24px 64px}
-  h1{font-size:20px;margin:0 0 4px}
-  .sub{color:var(--dim);margin:0 0 20px;font-size:13px}
-  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
-  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
-  button{padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--dim);cursor:pointer;font:inherit}
-  button:hover{border-color:var(--accent);color:var(--accent)}
-  button.primary{background:var(--accent);border-color:transparent;color:#fff}
-  input,select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;min-width:180px}
-  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font:12px/1.5 Consolas,monospace;max-height:360px}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:12px}
+  .hero{min-height:100vh;display:grid;place-items:center;background:linear-gradient(180deg,#fbfcfe,#f3f6fb);padding:40px 24px}
+  .panel{width:100%;max-width:720px;text-align:center}
+  .mark{width:72px;height:72px;border-radius:20px;margin:0 auto 18px;display:block;box-shadow:0 10px 30px rgba(43,127,255,.22)}
+  h1{font-size:26px;margin:0 0 6px;font-weight:600;letter-spacing:.01em}
+  .tag{color:var(--text-dim);font-size:14.5px;margin:0 auto 8px;max-width:520px;line-height:1.7}
+  .en{font-family:var(--mono);font-size:12px;letter-spacing:.28em;color:var(--text-faint);text-transform:uppercase;margin-bottom:28px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+  .entry{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;text-align:left;transition:.16s;display:block}
+  .entry:hover{border-color:var(--accent);box-shadow:0 12px 30px rgba(31,35,41,.08);transform:translateY(-2px)}
+  .entry .ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent-strong);display:grid;place-items:center;margin-bottom:14px}
+  .entry .t{font-size:16px;font-weight:600;margin-bottom:4px}
+  .entry .d{font-size:13px;color:var(--text-dim);line-height:1.6}
+  .entry .go{margin-top:14px;font-size:13px;color:var(--accent-strong);font-weight:500}
+  .foot{margin-top:28px;font-size:12px;color:var(--text-faint)}
+  .foot code{font-family:var(--mono);background:#eef1f5;padding:1px 6px;border-radius:5px}
+  @media(max-width:600px){.cards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>火花会 Sparkwave · 演示台</h1>
-  <p class="sub">单机演示的控制台：配置初始化 → 建房 → 讨论（点名/举手）→ 结论文档 → 导出。需先运行 <code>make seed</code> 完成入库与配置。</p>
-
-  <div class="card">
-    <div class="row"><strong>初始化状态</strong><span id="init" class="pill">未检查</span><button onclick="checkInit()">检查</button></div>
-  </div>
-
-  <div class="card">
-    <div class="row"><strong>建房</strong>
-      <input id="prop" value="某功能预计延期两周，应砍范围、加人还是推迟发布？">
-      <input id="host" value="陈默" style="min-width:90px">
-      <button class="primary" onclick="createRoom()">创建房间</button>
-      <span id="room" class="pill">房间：无</span>
+<div class="hero">
+  <div class="panel">
+    <img class="mark" src="/assets/icon/sparkwave-app-icon.svg" alt="火花会 Sparkwave">
+    <h1>火花会</h1>
+    <div class="en">Sparkwave</div>
+    <p class="tag">人机混合头脑风暴工具。多个绑定不同知识库的智能体，在人类主持下围绕一个命题差异化发言、暴露分歧，并生成带来源标注的阶段结论。</p>
+    <div class="cards">
+      <a class="entry" href="/admin/">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <div class="t">管理后台</div>
+        <div class="d">系统级配置：初始化状态、知识库与文档、模型连接、智能体（含人设与发言风格）。</div>
+        <div class="go">进入配置 →</div>
+      </a>
+      <a class="entry" href="/lobby/">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="t">头脑风暴房间</div>
+        <div class="d">建房、群聊与来源标注、成员与邀请、举手队列、阶段结论与导出下载。</div>
+        <div class="go">进入房间 →</div>
+      </a>
     </div>
-    <div class="row"><strong>点名发言</strong>
-      <select id="agents"></select>
-      <button onclick="speak()">点名</button>
-      <input id="human" placeholder="人类发言，如：补充一个合规约束">
-      <button onclick="humanMsg()">发送</button>
-    </div>
-    <div class="row"><strong>插嘴</strong>
-      <button onclick="raiseHand()">举手</button>
-      <button onclick="releaseHand()">放行</button>
-      <button onclick="dismissHand()">驳回</button>
-    </div>
-    <div class="row"><strong>产出</strong>
-      <button onclick="conclusion()">生成结论</button>
-      <button onclick="exportTranscript()">导出记录</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="row"><strong>消息 / 结果</strong><button onclick="loadMessages()">刷新消息</button></div>
-    <pre id="out">（点击上方按钮查看结果）</pre>
+    <div class="foot">单机演示版 · 需先运行 <code>python tasks.py seed</code> 完成入库与配置</div>
   </div>
 </div>
-
+<script src="/assets/api.js"></script>
+<script src="/assets/ui.js"></script>
 <script>
-const API = "";
-let roomId = null, lastRaise = null;
-function show(x){ document.getElementById('out').textContent = JSON.stringify(x, null, 2); }
-async function j(url, opt){ const r = await fetch(API+url, opt); const t = await r.text(); try { return {status:r.status, body:JSON.parse(t)}; } catch { return {status:r.status, body:t}; } }
-function opts(body){ return {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}; }
-
-async function checkInit(){ const r = await j('/system/init-status'); document.getElementById('init').textContent = r.body.ready ? '已达标' : '未达标'; show(r); if(r.body.ready) loadAgents(); }
-async function loadAgents(){ const r = await j('/agents'); const sel = document.getElementById('agents'); sel.innerHTML=''; (r.body||[]).forEach(a=>{ const o=document.createElement('option'); o.value=a.agent_id; o.textContent=a.name+' · '+a.model_name; sel.appendChild(o); }); }
-async function createRoom(){
-  const agentId = document.getElementById('agents').value;
-  const r = await j('/rooms', opts({proposition:document.getElementById('prop').value, orchestration_mode:'人类主持控制', agent_ids: agentId?[agentId]:[], host_name:document.getElementById('host').value}));
-  if(r.status===201){ roomId = r.body.room_id; document.getElementById('room').textContent='房间：'+roomId.slice(-6); }
-  show(r);
-}
-async function speak(){ if(!roomId) return show({error:'先建房'}); const r = await j(`/rooms/${roomId}/speak`, opts({agent_id:document.getElementById('agents').value, intent:document.getElementById('prop').value})); show(r); }
-async function humanMsg(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/messages`, opts({content:document.getElementById('human').value})); show(r); }
-async function raiseHand(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/raise-hand`, opts({agent_id:document.getElementById('agents').value, intent:'补充观点'})); lastRaise = r.body.raise_id; show(r); }
-async function releaseHand(){ if(!roomId||!lastRaise) return; const r = await j(`/rooms/${roomId}/raise-hand/${lastRaise}/release`, {method:'POST'}); show(r); }
-async function dismissHand(){ if(!roomId||!lastRaise) return; const r = await j(`/rooms/${roomId}/raise-hand/${lastRaise}/dismiss`, {method:'POST'}); show(r); }
-async function conclusion(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/conclusion`, {method:'POST'}); show(r); }
-async function exportTranscript(){ if(!roomId) return; const r = await j(`/rooms/${roomId}/export`, {method:'POST'}); show(r); }
-async function loadMessages(){ if(!roomId) return; show(await j(`/rooms/${roomId}/messages`)); }
+  // 首页守卫：未初始化（无知识库或无已绑定知识库的智能体）时，跳转到管理后台初始化状态页。
+  (async function () {
+    const r = await api.get('/system/init-status');
+    if (r.ok && r.body && r.body.ready === false) {
+      location.replace('/admin/?init=1');
+    }
+  })();
 </script>
 </body>
 </html>
