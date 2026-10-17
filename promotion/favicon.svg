@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" role="img" aria-label="火花会 Sparkwave">
+  <title>火花会 Sparkwave</title>
+  <rect x="4" y="4" width="92" height="92" rx="24" fill="#2b7fff"/>
+  <path d="M20 63 C 29 50, 40 50, 49 63 C 58 76, 69 76, 78 63"
+        fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 18 C 51.6 26.6, 54.4 29.4, 63 31 C 54.4 32.6, 51.6 35.4, 50 44 C 48.4 35.4, 45.6 32.6, 37 31 C 45.6 29.4, 48.4 26.6, 50 18 Z"
+        fill="#ffffff"/>
+</svg>
