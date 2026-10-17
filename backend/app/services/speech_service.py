@@ -1,3 +1,4 @@
+import logging
 from typing import Iterator
 
 from sqlmodel import Session, select
@@ -6,6 +7,8 @@ from app.domain.enums import RoomStatus, SourceType
 from app.domain.models import HumanMember, Message, Room
 from app.models.provider import CONTENT, END, NOTICE, THOUGHT
 from app.models.thinking import resolve
+
+logger = logging.getLogger(__name__)
 
 STAGE_RETRIEVE = "检索知识库"
 STAGE_THINK = "思考中"
@@ -112,7 +115,13 @@ class SpeechService:
         kb_ids = self.config.bound_kb_ids(agent_id)
         query = intent or agent.name
         try:
-            hits = self.retrieval.retrieve(query, kb_ids) if kb_ids else []
+            if kb_ids:
+                hits, degraded = self.retrieval.retrieve_combined(query, kb_ids)
+                if degraded:
+                    # 显式降级只进日志：不进上下文、不进界面，来源标注口径不变
+                    logger.warning("external kb degraded: %s", "; ".join(degraded))
+            else:
+                hits = []
         except Exception as exc:  # 嵌入端点不可达、向量维度不匹配等
             raise SpeechError(f"检索失败：{exc}")
         asker = self.asker_name(room_id)

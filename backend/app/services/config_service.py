@@ -6,6 +6,7 @@ from app.domain.models import (
     AgentKnowledgeBase,
     Chunk,
     Document,
+    ExternalCorpusLink,
     KnowledgeBase,
     ModelConnection,
     RoomAgent,
@@ -24,6 +25,9 @@ CONCLUSION_CONN_KEY = "conclusion_conn_id"
 CONCLUSION_MODEL_KEY = "conclusion_model"
 ASR_CONN_KEY = "asr_conn_id"
 ASR_MODEL_KEY = "asr_model"
+EXT_KB_URL_KEY = "ext_kb_url"
+EXT_KB_TOKEN_KEY = "ext_kb_token"
+EXT_KB_ENABLED_KEY = "ext_kb_enabled"
 
 
 def mask_key(key: str) -> str:
@@ -34,6 +38,10 @@ def mask_key(key: str) -> str:
 
 class InUseError(Exception):
     """目标被引用，不可删除。"""
+
+
+class AliasConflictError(Exception):
+    """挂接别名冲突：与既有别名/知识库名/智能体名重名。"""
 
 
 class ConfigService:
@@ -130,6 +138,126 @@ class ConfigService:
             # 转写模型名是自由文本（如 qwen-audio-3.0-asr-flash），不校验可用对话模型列表
         self.set_setting(ASR_CONN_KEY, conn_id or "")
         self.set_setting(ASR_MODEL_KEY, model_name or "")
+
+    # ---------- 外部中心知识库连接 ----------
+    def get_external_kb(self) -> dict:
+        """连接配置（URL/令牌/启用）。令牌受保护：调用方只取回掩码，不下发明文。"""
+        return {
+            "url": self.get_setting(EXT_KB_URL_KEY) or "",
+            "token": self.get_setting(EXT_KB_TOKEN_KEY) or "",
+            "enabled": self.get_setting(EXT_KB_ENABLED_KEY) == "1",
+        }
+
+    def set_external_kb(self, url: str | None, token: str | None, enabled: bool) -> None:
+        url = (url or "").strip().rstrip("/")
+        if url and not (url.startswith("http://") or url.startswith("https://")):
+            raise ValueError("外部知识库地址须以 http:// 或 https:// 开头")
+        current_token = self.get_setting(EXT_KB_TOKEN_KEY) or ""
+        # token 为 None/空串表示不修改（界面留空即此语义）
+        token_unchanged = token is None or not token.strip()
+        effective = current_token if token_unchanged else token.strip()
+        if token is not None and token.strip():
+            if not token.strip().isascii():
+                raise ValueError("外部知识库令牌须为 ASCII 可打印字符")
+        if enabled and (not url or not effective):
+            raise ValueError("启用外部知识库时地址与令牌不能为空")
+        if not token_unchanged:
+            self.set_setting(EXT_KB_TOKEN_KEY, effective)
+        self.set_setting(EXT_KB_URL_KEY, url)
+        self.set_setting(EXT_KB_ENABLED_KEY, "1" if enabled else "")
+
+    # ---------- 外部语料库挂接 ----------
+    def list_external_links(self, kb_id: str | None = None) -> list[ExternalCorpusLink]:
+        with Session(self.engine) as s:
+            stmt = select(ExternalCorpusLink)
+            if kb_id is not None:
+                stmt = stmt.where(ExternalCorpusLink.kb_id == kb_id)
+            return list(s.exec(stmt).all())
+
+    def get_external_link(self, kb_id: str, link_id: str) -> ExternalCorpusLink | None:
+        with Session(self.engine) as s:
+            return s.exec(
+                select(ExternalCorpusLink).where(
+                    ExternalCorpusLink.kb_id == kb_id,
+                    ExternalCorpusLink.link_id == link_id,
+                )
+            ).first()
+
+    def alias_conflict(self, alias: str) -> str | None:
+        """别名冲突检查：与既有挂接别名、知识库名、智能体名全局不重。返回冲突描述或 None。"""
+        alias = (alias or "").strip()
+        for kb in self.list_knowledge_bases():
+            if kb.name == alias:
+                return f"与知识库「{alias}」重名"
+        for agent in self.list_agents():
+            if agent.name == alias:
+                return f"与智能体「{alias}」重名"
+        with Session(self.engine) as s:
+            row = s.exec(
+                select(ExternalCorpusLink).where(ExternalCorpusLink.alias == alias)
+            ).first()
+        if row is not None:
+            return "别名已被占用"
+        return None
+
+    def add_external_link(self, kb_id: str, ext_corpus_id: str, alias: str) -> ExternalCorpusLink:
+        if self.get_knowledge_base(kb_id) is None:
+            raise ValueError("knowledge base not found")
+        alias = (alias or "").strip()
+        if not alias or len(alias) > 40:
+            raise ValueError("别名不能为空且不超过 40 字")
+        conflict = self.alias_conflict(alias)
+        if conflict is not None:
+            raise AliasConflictError(conflict)
+        with Session(self.engine) as s:
+            dup = s.exec(
+                select(ExternalCorpusLink).where(
+                    ExternalCorpusLink.kb_id == kb_id,
+                    ExternalCorpusLink.ext_corpus_id == ext_corpus_id,
+                )
+            ).first()
+            if dup is not None:
+                raise ValueError("该外部语料库已挂接到本知识库")
+            link = ExternalCorpusLink(
+                link_id=new_id("extlink"),
+                kb_id=kb_id,
+                ext_corpus_id=ext_corpus_id,
+                alias=alias,
+            )
+            s.add(link)
+            s.commit()
+            s.refresh(link)
+            return link
+
+    def update_external_link(
+        self, kb_id: str, link_id: str, alias: str | None = None
+    ) -> ExternalCorpusLink | None:
+        link = self.get_external_link(kb_id, link_id)
+        if link is None:
+            return None
+        if alias is not None:
+            alias = alias.strip()
+            if not alias or len(alias) > 40:
+                raise ValueError("别名不能为空且不超过 40 字")
+            if alias != link.alias:
+                conflict = self.alias_conflict(alias)
+                if conflict is not None:
+                    raise AliasConflictError(conflict)
+                link.alias = alias
+        with Session(self.engine) as s:
+            s.add(link)
+            s.commit()
+            s.refresh(link)
+        return link
+
+    def remove_external_link(self, kb_id: str, link_id: str) -> bool:
+        link = self.get_external_link(kb_id, link_id)
+        if link is None:
+            return False
+        with Session(self.engine) as s:
+            s.delete(s.get(ExternalCorpusLink, link.link_id))
+            s.commit()
+        return True
 
     # ---------- 模型连接 ----------
     def create_connection(self, data) -> ModelConnection:

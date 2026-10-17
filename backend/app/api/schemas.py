@@ -73,6 +73,34 @@ class AgentUpdate(BaseModel):
     speech_pace: Optional[SpeechPace] = None
 
 
+# ---------- 外部中心知识库 ----------
+class ExternalKbSetting(BaseModel):
+    url: Optional[str] = None
+    token: Optional[str] = None  # None 表示不修改；响应中永远只回掩码
+    enabled: Optional[bool] = None
+
+
+class ExternalKbTest(BaseModel):
+    """连通测试：可用表单当前值即时测试（不落库）；缺省字段回退已保存配置。"""
+
+    url: Optional[str] = None
+    token: Optional[str] = None
+
+
+class ExternalLinkCreate(BaseModel):
+    ext_corpus_id: str
+    alias: str
+
+
+class ExternalLinkUpdate(BaseModel):
+    alias: Optional[str] = None
+
+
+class RetrievalTestIn(BaseModel):
+    query: str
+    kb_id: Optional[str] = None  # 缺省＝全部知识库
+
+
 # ---------- 房间 ----------
 class RoomCreate(BaseModel):
     proposition: str

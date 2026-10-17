@@ -58,17 +58,17 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         知识库
       </button>
+      <button class="navitem" data-p="extkb">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        外部知识库连接
+      </button>
+      <button class="navitem" data-p="rettest">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        知识检索测试验证
+      </button>
       <button class="navitem" data-p="conn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 2v6M15 2v6"/><rect x="6" y="8" width="12" height="6" rx="2"/><path d="M12 14v4a3 3 0 0 0 3 3h2"/></svg>
         模型连接
-      </button>
-      <button class="navitem" data-p="agent">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg>
-        智能体
-      </button>
-      <button class="navitem" data-p="uiopts">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
-        界面与行为选项
       </button>
       <div class="navgroup open" id="navModelGroup">
         <button class="navitem" id="navModelToggle" aria-expanded="true" aria-controls="navModelKids">
@@ -81,6 +81,14 @@
           <button class="navitem navsub" data-p="asrmodel">语音转写模型</button>
         </div>
       </div>
+      <button class="navitem" data-p="agent">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></svg>
+        智能体
+      </button>
+      <button class="navitem" data-p="uiopts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>
+        界面与行为选项
+      </button>
       <button class="navitem" data-p="token">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         管理后台访问令牌修改
@@ -153,6 +161,60 @@
         <div class="note" id="uiOptsHint">正在读取…</div>
         <button class="btn primary" id="uiOptsSubmit">保存</button>
       </div>
+    </section>
+
+    <!-- VW-A9 外部知识库连接 -->
+    <section id="p-extkb" hidden>
+      <div class="crumb">系统配置 / 外部知识库连接</div>
+      <h1 class="page">外部知识库连接</h1>
+      <p class="sub">启用后，智能体发言检索将组合使用本系统知识库与已挂接的外部语料库（等权合并，外部不可用时显式降级为纯本地）。挂接入口唯一：语料库列表按挂接状态呈现「挂接」或「已挂接」，点「已挂接」查看挂接信息。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">API 地址<span class="help">中心知识库 API 基地址，如 http://127.0.0.1:8101。</span></div>
+          <div class="ctl"><input type="text" id="extKbUrl" class="mono" placeholder="http://127.0.0.1:8101"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">访问令牌<span class="help">对应中心知识库的 KB_AUTH_TOKEN；留空表示不修改。</span></div>
+          <div class="ctl"><input type="password" id="extKbToken" placeholder="留空表示不修改"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">启用<span class="help">未启用时挂接面板停用，检索为纯本地、零外部调用。</span></div>
+          <div class="ctl"><label class="switchrow"><input type="checkbox" id="extKbEnabled"><span>启用外部知识库组合检索</span></label></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="extKbHint">正在读取…</div>
+        <div class="inline"><button class="btn" id="btnExtKbTest">测试连通</button><button class="btn primary" id="extKbSave">保存</button></div>
+      </div>
+      <div style="height:22px"></div>
+      <div class="card" id="extKbCorpusCard">
+        <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:600">外部语料库</h3>
+        <div class="note" id="extKbSnap" style="margin-bottom:8px;display:none"></div>
+        <div id="extCorpusList"><div class="empty">启用连接后可查看外部语料库</div></div>
+      </div>
+    </section>
+
+    <!-- VW-A10 知识检索测试验证 -->
+    <section id="p-rettest" hidden>
+      <div class="crumb">系统配置 / 知识检索测试验证</div>
+      <h1 class="page">知识检索测试验证</h1>
+      <p class="sub">输入查询内容，验证「本程序知识库」与「外部挂接知识库」的检索效果与合并结果——与智能体发言同一检索算法；测试为一次性内存态操作，不落库、不影响房间讨论。</p>
+      <div class="card">
+        <div class="row">
+          <div class="lbl">查询内容<span class="help">最多 200 字；执行一次组合检索并分组展示命中。</span></div>
+          <div class="ctl"><input type="text" id="retQuery" maxlength="200" placeholder="输入查询内容…"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">范围<span class="help">具体知识库＝该知识库本地文档 + 其挂接外部语料库；全部知识库＝按全部知识库展开。</span></div>
+          <div class="ctl"><select id="retKb"></select></div>
+        </div>
+      </div>
+      <div class="between">
+        <div class="note" id="retHint">执行后按「本程序知识库／外部挂接知识库／合并结果」三组展示命中与来源分数。</div>
+        <button class="btn primary" id="retRun">执行测试检索</button>
+      </div>
+      <div style="height:18px"></div>
+      <div id="retResult"><div class="empty">尚未执行测试检索</div></div>
     </section>
 
     <!-- VW-A6 结论综合模型 -->
@@ -244,6 +306,28 @@
   </div>
 </div>
 
+<!-- 模态：挂接外部语料库 -->
+<div class="overlay" id="mExtLink">
+  <div class="dialog">
+    <div class="dh"><div class="t">挂接外部语料库</div><div class="s">挂接到某个维度知识库后，智能体绑定该知识库即可组合检索该语料库；内容不导入本系统。</div></div>
+    <div class="db">
+      <div class="frow"><div class="lbl">外部语料库<span class="req">*</span></div><select id="extLinkCorpus"></select></div>
+      <div class="frow"><div class="lbl">目标知识库<span class="req">*</span></div><select id="extLinkKb"></select></div>
+      <div class="frow"><div class="lbl">别名<span class="req">*</span><span class="help">全局唯一，不与既有知识库、智能体重名；重名时以此别名区分。</span></div><input type="text" id="extLinkAlias" maxlength="40"></div>
+    </div>
+    <div class="df"><button class="btn" data-close>取消</button><button class="btn primary" id="extLinkSave">挂接</button></div>
+  </div>
+</div>
+
+<!-- 模态：挂接信息（已挂接语料库查看/管理） -->
+<div class="overlay" id="mExtLinkInfo">
+  <div class="dialog">
+    <div class="dh"><div class="t">挂接信息</div><div class="s" id="extLinkInfoSub"></div></div>
+    <div class="db"><div id="extLinkInfoList"></div></div>
+    <div class="df"><button class="btn primary" data-close>关闭</button></div>
+  </div>
+</div>
+
 <!-- 模态：模型连接 -->
 <div class="overlay" id="mConn">
   <div class="dialog">
@@ -296,7 +380,7 @@
 <script>
 const DIMS = ["业务领域", "项目管理与软件工程方法论", "技术架构"];
 const PROVIDERS = ["OpenAI 兼容", "DashScope 原生"];
-const state = { init:{}, conns:[], kbs:[], docs:[], agents:[] };
+const state = { init:{}, conns:[], kbs:[], docs:[], agents:[], extLinks:{}, extCorpora:[], extLinksReady:false, extLinksVersion:0 };
 const byId = (arr, k) => Object.fromEntries(arr.map(x => [x[k], x]));
 let editing = { conn:null, agent:null };
 
@@ -345,6 +429,7 @@ function renderInit(){
 function renderKb(){
   const docsByKb = {};
   state.docs.forEach(d => { (docsByKb[d.kb_id] = docsByKb[d.kb_id]||[]).push(d); });
+  const linksByKb = state.extLinks || {};
   const host = document.getElementById('kbList');
   const desc = {
     "业务领域":"命题所处业务场景的领域语料，如 HR、财经。",
@@ -359,21 +444,32 @@ function renderKb(){
     kbs.forEach(kb => {
       const docs = docsByKb[kb.kb_id] || [];
       html += `<div class="between" style="margin:10px 0 4px"><span style="font-weight:600;font-size:13.5px">${SW.esc(kb.name)}</span><button class="btn link danger sm" data-del-kb="${kb.kb_id}">删除知识库</button></div>`;
-      if (!docs.length) { html += `<div class="empty" style="padding:12px">暂无文档</div>`; return; }
-      html += `<table><thead><tr><th>文档</th><th>格式</th><th>大小</th><th>状态</th><th>上传时间</th><th></th></tr></thead><tbody>`;
-      docs.forEach(d => {
-        const st = d.status === '已入库' ? '<span class="badge ok">已入库</span>'
-          : d.status === '失败' ? '<span class="badge warn">失败</span>'
-          : '<span class="badge gray">待处理</span>';
-        html += `<tr><td>${SW.esc(d.file_name)}</td><td class="mono">${SW.esc(d.format)}</td><td class="mono muted">${d.size||0} B</td><td>${st}</td><td class="mono muted">${SW.fmtTime(d.uploaded_at)}</td><td><button class="btn link danger" data-del-doc="${d.doc_id}">移除</button></td></tr>`;
+      if (!docs.length) { html += `<div class="empty" style="padding:12px">暂无文档</div>`; }
+      else {
+        html += `<table><thead><tr><th>文档</th><th>格式</th><th>大小</th><th>状态</th><th>上传时间</th><th></th></tr></thead><tbody>`;
+        docs.forEach(d => {
+          const st = d.status === '已入库' ? '<span class="badge ok">已入库</span>'
+            : d.status === '失败' ? '<span class="badge warn">失败</span>'
+            : '<span class="badge gray">待处理</span>';
+          html += `<tr><td>${SW.esc(d.file_name)}</td><td class="mono">${SW.esc(d.format)}</td><td class="mono muted">${d.size||0} B</td><td>${st}</td><td class="mono muted">${SW.fmtTime(d.uploaded_at)}</td><td><button class="btn link danger" data-del-doc="${d.doc_id}">移除</button></td></tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+      const links = linksByKb[kb.kb_id] || [];
+      html += `<div class="between" style="margin:8px 0 2px"><span class="muted" style="font-size:12.5px">外部语料库挂接</span></div>`;
+      if (!links.length) { html += `<div class="empty" style="padding:8px">暂无挂接（在「外部知识库连接」分区挂接）</div>`; }
+      links.forEach(l => {
+        const stale = l.stale ? '<span class="badge warn">外部已失效</span>' : '';
+        html += `<div class="between" style="margin:4px 0"><span style="font-size:13px">${SW.esc(l.alias)}<span class="muted mono" style="margin-left:8px;font-size:11.5px">${SW.esc(l.ext_corpus_id)}</span>${stale}</span>`
+          + `<span class="inline"><button class="btn link danger sm" data-ext-del="${l.link_id}" data-ext-kb="${kb.kb_id}">解除</button></span></div>`;
       });
-      html += `</tbody></table>`;
     });
     html += `</div>`;
   });
   host.innerHTML = html;
   host.querySelectorAll('[data-del-doc]').forEach(b => b.onclick = () => delDoc(b.dataset.delDoc));
   host.querySelectorAll('[data-del-kb]').forEach(b => b.onclick = () => delKb(b.dataset.delKb));
+  host.querySelectorAll('[data-ext-del]').forEach(b => b.onclick = () => delExtLink(b.dataset.extKb, b.dataset.extDel));
 }
 async function delKb(kbId){
   const kb = state.kbs.find(k => k.kb_id === kbId);
@@ -733,15 +829,263 @@ function boot(){
   }
 }
 
+/* ---------- VW-A9 外部知识库连接 ---------- */
+async function loadExtKb(){
+  const r = await api.get('/system/external-kb');
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  const body = r.body || {};
+  document.getElementById('extKbUrl').value = body.url || '';
+  document.getElementById('extKbToken').value = '';
+  document.getElementById('extKbToken').placeholder = body.token_masked ? `已保存 ${body.token_masked}` : '留空表示不修改';
+  document.getElementById('extKbEnabled').checked = !!body.enabled;
+  setHint('extKbHint', r.ok,
+    '连接配置为系统级，读写均须管理令牌；令牌只回掩码。启用后智能体发言检索将组合使用已挂接的外部语料库，外部不可用时显式降级为纯本地检索。');
+  // 语料库列表立即呈现；挂接关系随后就绪，就绪后按钮状态自动刷新
+  await loadExtCorpora();
+  await loadExtLinksAll();
+}
+async function saveExtKb(){
+  const url = document.getElementById('extKbUrl').value.trim();
+  const token = document.getElementById('extKbToken').value;
+  const enabled = document.getElementById('extKbEnabled').checked;
+  const body = { url, enabled };
+  if (token) body.token = token;  // 留空表示不修改
+  const r = await api.patch('/system/external-kb', body);
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '外部知识库连接已保存')) { await loadExtKb(); }
+}
+async function testExtKb(){
+  // 用表单当前值即时测试（未保存也可测）：留空字段由服务端回退已保存配置
+  const r = await api.post('/external-kb/healthz', {
+    url: document.getElementById('extKbUrl').value.trim() || null,
+    token: document.getElementById('extKbToken').value || null,
+  });
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (r.ok) return SW.toast('外部知识库已连通', 'ok');
+  return SW.toast(r.error || '无法连接外部知识库', 'err');
+}
+async function loadExtCorpora(){
+  const host = document.getElementById('extCorpusList');
+  const snapNote = document.getElementById('extKbSnap');
+  const r = await api.get('/external-kb/corpora');
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (r.status === 422) {
+    snapNote.style.display = 'none';
+    host.innerHTML = '<div class="empty">启用连接后可查看外部语料库</div>';
+    return;
+  }
+  if (!r.ok) {
+    snapNote.style.display = 'none';
+    host.innerHTML = `<div class="empty">${SW.esc(r.error || '无法连接外部知识库')}</div>`;
+    return;
+  }
+  // 连接层状态行：ok 显示同步时间；error 显示降级（呈现最近快照）；pending 不显示
+  const st = r.body.state || '';
+  const at = r.body.refreshed_at;
+  if (st === 'ok') {
+    snapNote.className = 'note';
+    snapNote.textContent = `连接层：已同步 ${SW.fmtTime(at) || ''}`.trim();
+    snapNote.style.display = '';
+  } else if (st && st.indexOf('error') === 0) {
+    snapNote.className = 'note err';
+    snapNote.textContent = `连接层：上次同步失败，显示最近快照${at ? `（截至 ${SW.fmtTime(at)}）` : ''}`;
+    snapNote.style.display = '';
+  } else {
+    snapNote.style.display = 'none';
+  }
+  state.extCorpora = r.body.corpora || [];
+  renderExtCorpora();
+}
+function renderExtCorpora(){
+  const host = document.getElementById('extCorpusList');
+  const corpora = state.extCorpora || [];
+  if (!corpora.length) { host.innerHTML = '<div class="empty">外部暂无语料库</div>'; return; }
+  const flat = state.extLinksReady ? Object.values(state.extLinks || {}).flat() : null;
+  host.innerHTML = corpora.map(c => {
+    let btn;
+    if (flat === null) {
+      // 挂接关系尚未就绪：占位，避免误显示「挂接」；就绪后由 loadExtLinksAll 统一刷新
+      btn = `<button class="btn sm" disabled>读取中…</button>`;
+    } else {
+      const attached = flat.filter(l => l.ext_corpus_id === c.corpus_id);
+      btn = attached.length
+        ? `<button class="btn sm" data-ext-info="${SW.esc(c.corpus_id)}" data-ext-name="${SW.esc(c.name)}">已挂接${attached.length>1?' · '+attached.length:''}</button>`
+        : `<button class="btn sm" data-ext-attach="${SW.esc(c.corpus_id)}" data-ext-name="${SW.esc(c.name)}" ${c.archived?'disabled':''}>挂接</button>`;
+    }
+    return `
+    <div class="between" style="margin:4px 0">
+      <span style="font-size:13px">${SW.esc(c.name)}<span class="muted mono" style="margin-left:8px;font-size:11.5px">${SW.esc(c.corpus_id)} · ${SW.esc(c.subdir||'')}</span>${c.archived?'<span class="badge gray">已归档</span>':''}</span>
+      ${btn}
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-ext-attach]').forEach(b => b.onclick = () => openExtLink(b.dataset.extAttach, b.dataset.extName));
+  host.querySelectorAll('[data-ext-info]').forEach(b => b.onclick = () => openExtLinkInfo(b.dataset.extInfo, b.dataset.extName));
+}
+function openExtLink(corpusId, corpusName){
+  const kbSel = document.getElementById('extLinkKb');
+  kbSel.innerHTML = state.kbs.map(k => `<option value="${k.kb_id}">${SW.esc(k.name)}（${SW.esc(k.dimension)}）</option>`).join('');
+  const corpusSel = document.getElementById('extLinkCorpus');
+  corpusSel.innerHTML = corpusId
+    ? `<option value="${SW.esc(corpusId)}">${SW.esc(corpusName||corpusId)}</option>`
+    : '<option value="">选择外部语料库…</option>';
+  corpusSel.disabled = !!corpusId;
+  document.getElementById('extLinkAlias').value = corpusName || '';
+  // 打开时复原按钮状态：上次提交若还在刷新列表，不把残留的「挂接中」带进新模态
+  const btn = document.getElementById('extLinkSave');
+  btn.disabled = false; btn.textContent = '挂接';
+  SW.openModal('mExtLink');
+}
+function openExtLinkInfo(corpusId, corpusName){
+  // 已挂接：查看挂接信息（别名、所属知识库、启停与解除）
+  const host = document.getElementById('extLinkInfoList');
+  document.getElementById('extLinkInfoSub').textContent = `外部语料库「${corpusName || corpusId}」的挂接关系`;
+  const flat = Object.values(state.extLinks || {}).flat();
+  const links = flat.filter(l => l.ext_corpus_id === corpusId);
+  const kbName = (id) => { const k = state.kbs.find(x => x.kb_id === id); return k ? k.name : id; };
+  if (!links.length) {
+    host.innerHTML = '<div class="empty">该语料库当前未挂接</div>';
+  } else {
+    host.innerHTML = links.map(l => `
+      <div class="between" style="margin:6px 0">
+        <span style="font-size:13px">${SW.esc(l.alias)}<span class="muted" style="margin-left:8px;font-size:12px">→ ${SW.esc(kbName(l.kb_id))}（${SW.esc((state.kbs.find(x=>x.kb_id===l.kb_id)||{}).dimension||'')}）</span>${l.stale?'<span class="badge warn">外部已失效</span>':''}</span>
+        <span class="inline"><button class="btn link danger sm" data-info-del="${l.link_id}" data-info-kb="${l.kb_id}">解除</button></span>
+      </div>`).join('');
+    host.querySelectorAll('[data-info-del]').forEach(b => b.onclick = async () => {
+      await delExtLink(b.dataset.infoKb, b.dataset.infoDel);
+      openExtLinkInfo(corpusId, corpusName);  // 本地状态已即时更新，直接重开信息模态
+    });
+  }
+  SW.openModal('mExtLinkInfo');
+}
+async function submitExtLink(){
+  const btn = document.getElementById('extLinkSave');
+  if (btn.disabled) return;  // 挂接执行中：防重复点击重复提交（服务端另有唯一约束兜底）
+  const kbId = document.getElementById('extLinkKb').value;
+  const corpusId = document.getElementById('extLinkCorpus').value;
+  const alias = document.getElementById('extLinkAlias').value.trim();
+  if (!kbId) return SW.toast('请选择目标知识库', 'err');
+  if (!corpusId) return SW.toast('请选择外部语料库', 'err');
+  if (!alias) return SW.toast('请填写别名', 'err');
+  btn.disabled = true; btn.textContent = '挂接中…';
+  let r;
+  try {
+    r = await api.post(`/knowledge-bases/${kbId}/external-links`, { ext_corpus_id: corpusId, alias });
+  } finally {
+    // 请求一返回就复原按钮：后续的列表刷新（loadExtLinksAll/renderKb）不阻塞按钮状态，
+    // 避免上一轮的「挂接中」残留在下一次打开的模态里
+    btn.disabled = false; btn.textContent = '挂接';
+  }
+  if (r.status === 401) { SW.closeModal('mExtLink'); return requireLogin('访问令牌已失效，请重新登录。'); }
+  if (SW.report(r, '已挂接外部语料库')) {
+    SW.closeModal('mExtLink');
+    // 即时反映挂接状态：新挂接先并入本地状态并重渲染，按钮立即转为「已挂接」；后台再全量刷新
+    const link = r.body;
+    if (link && link.link_id) {
+      state.extLinksVersion++;
+      const bucket = state.extLinks[kbId] || (state.extLinks[kbId] = []);
+      if (!bucket.some(l => l.link_id === link.link_id)) bucket.push(link);
+      state.extLinksReady = true;
+      renderExtCorpora();
+      renderKb();
+    }
+    loadExtLinksAll();  // 后台全量刷新，不阻塞按钮状态
+  }
+}
+async function loadExtLinksAll(){
+  // 知识库通常就三个：逐库取挂接；外部失效标记由服务端随响应给出。
+  // 先取到临时对象、完成后整体替换并重渲染：后台刷新期间不打断本地乐观状态。
+  // 带版本序号：刷新期间若发生挂接/解除（版本号前移），本批结果视为过期快照丢弃，
+  // 由该次变更之后发起的刷新接管——否则过期快照会把按钮闪回旧状态。
+  const v = state.extLinksVersion;
+  const next = {};
+  for (const kb of state.kbs) {
+    const r = await api.get(`/knowledge-bases/${kb.kb_id}/external-links`);
+    if (r.ok) next[kb.kb_id] = r.body.links || [];
+  }
+  if (state.extLinksVersion !== v) return;
+  state.extLinks = next;
+  // 挂接关系就绪：语料库按钮与知识库视图挂接面板一并刷新
+  state.extLinksReady = true;
+  renderExtCorpora();
+  renderKb();
+}
+async function delExtLink(kbId, linkId){
+  if (!confirm('确认解除该外部语料库挂接？检索将立即回到纯本地。')) return;
+  const r = await api.del(`/knowledge-bases/${kbId}/external-links/${linkId}`);
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (SW.report(r, '已解除挂接')) {
+    // 即时反映解除状态：先本地移除并重渲染，按钮立即回到「挂接」；后台再全量刷新
+    if (state.extLinks[kbId]) {
+      state.extLinksVersion++;
+      state.extLinks[kbId] = state.extLinks[kbId].filter(l => l.link_id !== linkId);
+      renderExtCorpora();
+      renderKb();
+    }
+    loadExtLinksAll();
+  }
+}
+
+/* ---------- VW-A10 知识检索测试验证 ---------- */
+function openRetTest(){
+  const sel = document.getElementById('retKb');
+  const fill = (list) => {
+    sel.innerHTML = '<option value="">全部知识库</option>' + list.map(k =>
+      `<option value="${k.kb_id}">${SW.esc(k.name)}（${SW.esc(k.dimension)}）</option>`).join('');
+  };
+  if (state.kbs && state.kbs.length) { fill(state.kbs); return; }
+  api.get('/knowledge-bases').then(r => { if (r.ok) fill(r.body.kbs || r.body || []); });
+}
+async function runRetrievalTest(){
+  const btn = document.getElementById('retRun');
+  if (btn.disabled) return;  // 执行中：防重复提交
+  const query = document.getElementById('retQuery').value.trim();
+  if (!query) return SW.toast('请输入查询内容', 'err');
+  const kbId = document.getElementById('retKb').value || null;
+  btn.disabled = true; btn.textContent = '检索中…';
+  let r;
+  try {
+    r = await api.post('/external-kb/retrieval-test', { query, kb_id: kbId });
+  } finally {
+    btn.disabled = false; btn.textContent = '执行测试检索';
+  }
+  if (r.status === 401) return requireLogin('访问令牌已失效，请重新登录。');
+  if (!r.ok) return SW.toast(r.error || '检索失败', 'err');
+  renderRetResults(r.body);
+}
+function renderRetResults(b){
+  const host = document.getElementById('retResult');
+  const entry = h => `
+    <div class="between" style="margin:6px 0;gap:10px;align-items:flex-start">
+      <div style="font-size:13px;line-height:1.6;flex:1;word-break:break-all">${SW.esc(h.text)}</div>
+      <div style="text-align:right;white-space:nowrap;flex:0 0 auto"><span class="badge">${SW.esc(h.source || '')}</span><div class="mono muted" style="font-size:11.5px">${h.score != null ? Number(h.score).toFixed(4) : '-'}</div></div>
+    </div>`;
+  const group = (title, list, extra) => {
+    const items = (list || []).map(entry).join('');
+    return `<div class="card" style="margin-bottom:10px"><div class="dimhead"><h2>${title}（${(list||[]).length}）</h2></div>${extra||''}${items || '<div class="empty">无命中</div>'}</div>`;
+  };
+  const notes = [];
+  if (b.external_enabled === false) notes.push('<div class="note err" style="margin:4px 0">连接未启用，未检索外部知识库</div>');
+  (b.degraded || []).forEach(d => {
+    if (d === '无挂接' || d === '连接未启用') notes.push(`<div class="note" style="margin:4px 0">${SW.esc(d)}</div>`);
+    else notes.push(`<div class="note err" style="margin:4px 0">外部源 ${SW.esc(d)}</div>`);
+  });
+  host.innerHTML = group('本程序知识库命中', b.local)
+    + group('外部挂接知识库命中', b.external, notes.join(''))
+    + group('合并结果', b.merged);
+}
+
 /* ---------- 导航与分区切换 ---------- */
 // 八个内容分区与左侧条目一一对应：前四项是系统级实体，后四项是系统设置
-const PANES = ['init','kb','conn','agent','uiopts','conclmodel','asrmodel','token'];
+const PANES = ['init','kb','extkb','rettest','conn','conclmodel','asrmodel','agent','uiopts','token'];
 function showPane(p){
   document.querySelectorAll('.navitem[data-p]').forEach(x => x.classList.toggle('on', x.dataset.p === p));
   PANES.forEach(k => { document.getElementById('p-'+k).hidden = k !== p; });
   document.querySelector('.content').scrollTop = 0;
-  // 进入分区时才取该分区的数据：令牌不可读回，其余三项各有开放读或须令牌的读接口
-  if (p === 'uiopts') loadUiOpts();
+  // 进入分区时才取该分区的数据：令牌不可读回，其余各项各有开放读或须令牌的读接口
+  if (p === 'kb') loadExtLinksAll();
+  else if (p === 'uiopts') loadUiOpts();
+  else if (p === 'extkb') loadExtKb();
+  else if (p === 'rettest') openRetTest();
   else if (p === 'conclmodel') loadConclModel();
   else if (p === 'asrmodel') loadAsrModel();
   else if (p === 'token') loadTokenPane();
@@ -768,7 +1112,7 @@ function wireNav(){
 }
 function wire(){
   wireNav();
-  ['mUpload','mKb','mConn','mAgent'].forEach(SW.wireModal);
+  ['mUpload','mKb','mConn','mAgent','mExtLink','mExtLinkInfo'].forEach(SW.wireModal);
   document.getElementById('goRoom').onclick = () => location.href = '/lobby/';
   document.getElementById('btnUpload').onclick = openUpload;
   document.getElementById('upSubmit').onclick = submitUpload;
@@ -784,6 +1128,10 @@ function wire(){
   document.getElementById('uiOptsSubmit').onclick = submitUiOpts;
   document.getElementById('cmSubmit').onclick = submitConclModel;
   document.getElementById('asrSubmit').onclick = submitAsrModel;
+  document.getElementById('extKbSave').onclick = saveExtKb;
+  document.getElementById('btnExtKbTest').onclick = testExtKb;
+  document.getElementById('extLinkSave').onclick = submitExtLink;
+  document.getElementById('retRun').onclick = runRetrievalTest;
 }
 wire();
 boot();

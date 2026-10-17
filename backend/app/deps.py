@@ -1,6 +1,8 @@
 from functools import lru_cache
 from threading import Lock
 
+from fastapi import Depends as _Depends
+
 from app.memory.service import MemoryService
 from app.orchestration.conclusion_gate import ConclusionGate
 from app.orchestration.floor import FloorGrant
@@ -61,10 +63,22 @@ def get_memory_service() -> MemoryService:
     return MemoryService(get_engine_singleton(), s.ctx_token_budget, s.summary_trigger_tokens)
 
 
+def _links_for_kbs(kb_ids: list[str]):
+    """组合检索的挂接提供方：返回这些知识库下的全部挂接（含停用，由检索层过滤）。"""
+    if not kb_ids:
+        return []
+    return [l for l in get_config_service().list_external_links() if l.kb_id in kb_ids]
+
+
 def get_retrieval_service() -> RetrievalService:
     from app.rag.embeddings import EmbeddingAdapter
 
-    return RetrievalService(get_vector_store_singleton(), EmbeddingAdapter())
+    return RetrievalService(
+        get_vector_store_singleton(),
+        EmbeddingAdapter(),
+        link_provider=_links_for_kbs,
+        ext_client_provider=get_external_kb_client,
+    )
 
 
 def install_embedding_factory() -> None:
@@ -150,7 +164,6 @@ def get_willingness_service() -> WillingnessService:
 _asr_key: tuple | None = None
 _asr_provider = None
 
-
 def get_asr_provider():
     """按语音转写设置（连接 + 模型名）返回转写提供方；未配置或无凭据时回落离线演示实现。
 
@@ -175,6 +188,43 @@ def get_asr_provider():
         _asr_key = key
         _asr_provider = DashScopeStreamingAsrProvider(conn.api_key, model)
     return _asr_provider
+
+
+_ext_kb_key: tuple | None = None
+_ext_kb_client = None
+_ext_kb_disabled = False
+
+
+def get_external_kb_client(svc: ConfigService = _Depends(get_config_service)):
+    """外部中心知识库客户端；未配置或未启用返回 None（检索为纯本地、零外部调用）。
+
+    经 FastAPI 依赖注入解析时使用注入的配置服务（测试覆盖即可生效）；
+    被检索层直接调用时 svc 实参为 Depends 占位，回落模块级配置服务单例（生产口径一致）。
+    以 (url, token, enabled) 为键缓存，配置改动即时生效。
+    """
+    global _ext_kb_key, _ext_kb_client, _ext_kb_disabled
+
+    conf = (svc if isinstance(svc, ConfigService) else get_config_service()).get_external_kb()
+    if not conf["enabled"] or not conf["url"] or not conf["token"]:
+        _ext_kb_key = None
+        _ext_kb_client = None
+        _ext_kb_disabled = True
+        return None
+    from app.integrations.external_kb import ExternalKbClient
+
+    key = (conf["url"], conf["token"], conf["enabled"])
+    if key != _ext_kb_key:
+        _ext_kb_key = key
+        _ext_kb_client = ExternalKbClient(conf["url"], conf["token"])
+        _ext_kb_disabled = False
+    return _ext_kb_client
+
+
+def get_external_kb_snapshot():
+    """外部知识库连接层快照（管理元数据缓存；供接口经依赖注入读取，测试可覆盖）。"""
+    from app.integrations.external_kb_snapshot import snapshot_singleton
+
+    return snapshot_singleton
 
 
 def get_conclusion_service() -> ConclusionService:

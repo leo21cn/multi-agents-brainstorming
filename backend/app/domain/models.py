@@ -78,6 +78,23 @@ class Chunk(SQLModel, table=True):
     vector_ref: Optional[str] = None
 
 
+class ExternalCorpusLink(SQLModel, table=True):
+    """外部中心知识库语料库到本系统知识库的挂接（组合检索，不导入内容）。
+
+    别名全局唯一（跨知识库不重名），同一知识库不得重复挂接同一外部语料库；
+    外部语料库被删除或归档时本行保留、检索跳过并显式标注。挂接即生效，
+    解除即回到纯本地，无启停开关。
+    """
+
+    __tablename__ = "external_corpus_link"
+
+    link_id: str = Field(primary_key=True)
+    kb_id: str = Field(foreign_key="knowledge_base.kb_id")
+    ext_corpus_id: str
+    alias: str
+    created_at: datetime = Field(default_factory=_now)
+
+
 class Agent(SQLModel, table=True):
     __tablename__ = "agent"
 
